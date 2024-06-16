@@ -1,6 +1,11 @@
 # DLSF
 DLS Fucker
 
+## Start
+```
+npm run start
+```
+
 ## License
 GPL  
 

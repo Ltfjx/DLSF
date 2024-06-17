@@ -3,7 +3,8 @@ var cancelTokens = {}
 var workers = []
 var interval = 3000
 var checkIfFull = true
-var particles = false
+var particlesLoaded = false
+var particlesPaused = false
 
 // 深色模式
 !(function () {
@@ -58,7 +59,25 @@ document.getElementById("buttonDarkMode").addEventListener("click", () => {
             hideAll()
             document.getElementById(`${item}-content`).removeAttribute("hidden")
 
-            if (item == "about" && !particles) { particlesJS.load('particles-js', 'particles.json'); particles = true }
+
+            // 粒子效果控制逻辑
+            if (item == "about") {
+                if (!particlesLoaded) {
+                    particlesJS.load('particles-js', 'particles.json')
+                    particlesLoaded = true
+                } else if (particlesPaused) {
+                    pJSDom[0].pJS.fn.vendors.start()
+                    particlesPaused = false
+                }
+            } else if (particlesLoaded && !particlesPaused) {
+                cancelRequestAnimFrame(pJSDom[0].pJS.fn.checkAnimFrame)
+                cancelRequestAnimFrame(pJSDom[0].pJS.fn.drawAnimFrame)
+                pJSDom[0].pJS.fn.particlesEmpty()
+                pJSDom[0].pJS.fn.canvasClear()
+                particlesPaused = true
+            }
+
+
         })
     })
     document.getElementById(`rail-${railItems[0]}`).click()

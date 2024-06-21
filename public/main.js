@@ -108,12 +108,16 @@ var cookie = JSON.parse(localStorage.getItem("DLSF_cookie")) || {}
 var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
 
 
-!(function () {
+!(async function () {
     document.getElementById("input-cookie-JSESSIONID").value = cookie.JSESSIONID ? cookie.JSESSIONID : ""
     document.getElementById("input-cookie-array").value = cookie.array ? cookie.array : ""
     document.getElementById("input-cookie-iPlanetDirectoryPro").value = cookie.iPlanetDirectoryPro ? cookie.iPlanetDirectoryPro : ""
+    document.getElementById("input-cookie-username").value = localStorage.getItem("DLSF_username") || ""
+    document.getElementById("input-cookie-password").value = localStorage.getItem("DLSF_password") || ""
     api("/setToken", { j: cookie.JSESSIONID, a: cookie.array, i: cookie.iPlanetDirectoryPro })
-    checkCookie()
+    if (!await checkCookie() && localStorage.getItem("DLSF_username") != "" && localStorage.getItem("DLSF_password") != "") {
+        buttonSaveUser()
+    }
     targetListRender()
 })()
 
@@ -167,6 +171,7 @@ async function api(target, params) {
     const methodMap = {
         "/studentui/initstudinfo": "GET",
         "/setToken": "POST",
+        "/loginGetToken": "GET",
         "/selectcourse/initACC": "GET",
         "/selectcourse/scSubmit": "POST"
     }
@@ -205,11 +210,26 @@ function buttonSaveCookie() {
     cookie.iPlanetDirectoryPro = document.getElementById("input-cookie-iPlanetDirectoryPro").value
     localStorage.setItem("DLSF_cookie", JSON.stringify(cookie))
     api("/setToken", { j: cookie.JSESSIONID, a: cookie.array, i: cookie.iPlanetDirectoryPro })
-    mdui.snackbar({
-        message: "保存成功",
-        placement: "bottom-end"
-    })
     checkCookie()
+}
+
+function buttonSaveUser() {
+    const username = document.getElementById("input-cookie-username").value
+    const password = document.getElementById("input-cookie-password").value
+    localStorage.setItem("DLSF_username", username)
+    localStorage.setItem("DLSF_password", password)
+    api("/loginGetToken", { username: username, password: password }).then(result => {
+        if (result.DLSF_SUCCESS) {
+            document.getElementById("input-cookie-JSESSIONID").value = result.JSESSIONID
+            document.getElementById("input-cookie-array").value = result.array
+            buttonSaveCookie()
+        } else {
+            mdui.snackbar({
+                message: "Cookie 更新失败，请检查用户名和密码",
+                placement: "bottom-end"
+            })
+        }
+    })
 }
 
 function switchMain() {
@@ -323,25 +343,31 @@ function switchMain() {
     }
 }
 
-function checkCookie() {
+async function checkCookie() {
     document.getElementById("checker-status").children[0].style["background"] = "lightgoldenrodyellow"
     document.getElementById("checker-status").children[1].innerHTML = "正在检查..."
     document.getElementById("checker-raw-text").innerHTML = "..."
-    api("/studentui/initstudinfo").then(result => {
-        if (result.success) {
-            document.getElementById("checker-status").children[0].style["background"] = "lightgreen"
-            document.getElementById("checker-status").children[1].innerHTML = "Token 检查通过"
-            document.getElementById("checker-raw-text").innerHTML = JSON.stringify(result, null, 2).replace(/ /g, "&nbsp;").replace(/\n/g, "<br>")
-        } else {
-            document.getElementById("checker-status").children[0].style["background"] = "lightcoral"
-            document.getElementById("checker-status").children[1].innerHTML = "Token 验证失败，请检查填写是否有误"
-            document.getElementById("checker-raw-text").innerHTML = "(╯‵□′)╯︵┻━┻"
-            mdui.snackbar({
-                message: "Token 验证失败，请检查填写是否有误",
-                placement: "bottom-end"
-            })
-        }
-    })
+    result = await api("/studentui/initstudinfo")
+    if (result.success) {
+        document.getElementById("checker-status").children[0].style["background"] = "lightgreen"
+        document.getElementById("checker-status").children[1].innerHTML = "Token 检查通过"
+        document.getElementById("checker-raw-text").innerHTML = JSON.stringify(result, null, 2).replace(/ /g, "&nbsp;").replace(/\n/g, "<br>")
+        mdui.snackbar({
+            message: "Token 检查通过",
+            placement: "bottom-end"
+        })
+        return true
+    } else {
+        document.getElementById("checker-status").children[0].style["background"] = "lightcoral"
+        document.getElementById("checker-status").children[1].innerHTML = "Token 验证失败，请检查填写是否有误"
+        document.getElementById("checker-raw-text").innerHTML = "(╯‵□′)╯︵┻━┻"
+        mdui.snackbar({
+            message: "Token 验证失败，请检查填写是否有误",
+            placement: "bottom-end"
+        })
+        return false
+    }
+
 }
 
 

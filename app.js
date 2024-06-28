@@ -2,15 +2,34 @@ var express = require('express')
 var encryptAES = require('./crypto')
 
 const app = express()
+const safeMode = false
+// 此变量将决定是否开启后端安全模式
+// 如果开启，后端将限制访问 IP 为本机
+// 如果你需要在其他设备上访问，请关闭此变量
+// !!不要在不受信任的网络环境中关闭安全模式!!
 
 cookie = {}
+
+if (safeMode) {
+    app.use((req, res, next) => {
+        const allowedIps = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
+        const clientIp = req.ip
+        if (!allowedIps.includes(clientIp)) {
+            res.status(403).send('DLSF_FORBIDDEN')
+        } else {
+            next()
+        }
+    })
+} else {
+    console.log("!! 当前安全模式已关闭，在公共网络环境下可能遭受攻击！")
+}
 
 app.get('/api/studentui/initstudinfo', (req, res) => {
 
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${cookie.j};array=${cookie.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -40,7 +59,7 @@ app.get('/api/selectcourse/initACC', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${cookie.j};array=${cookie.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -69,13 +88,71 @@ app.post('/api/selectcourse/scSubmit', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${cookie.j};array=${cookie.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
     }
 
     fetch("https://jwgl.dhu.edu.cn/dhu/selectcourse/scSubmit?cttId=" + req.query.cttId, config)
+        .then(response => response.text())
+        .then(result => {
+            let j
+            try {
+                j = JSON.parse(result)
+                console.log(j)
+                res.json(j)
+            } catch (error) {
+                console.log(error)
+                res.json({ "DLSF_SUCCESS": false })
+            }
+        })
+        .catch(error => {
+            console.log(error)
+            res.json({ "DLSF_SUCCESS": false })
+        })
+})
+
+app.get('/api/common/semesterSS', (req, res) => {
+    let config = {
+        method: 'POST',
+        headers: {
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Host': 'jwgl.dhu.edu.cn'
+        }
+    }
+
+    fetch("https://jwgl.dhu.edu.cn/dhu/common/semesterSS?ordered=true&sortType=desc", config)
+        .then(response => response.text())
+        .then(result => {
+            let j
+            try {
+                j = JSON.parse(result)
+                console.log(j)
+                res.json(j)
+            } catch (error) {
+                console.log(error)
+                res.json({ "DLSF_SUCCESS": false })
+            }
+        })
+        .catch(error => {
+            console.log(error)
+            res.json({ "DLSF_SUCCESS": false })
+        })
+})
+
+app.get('/api/StudentCourseTable/getData', (req, res) => {
+    let config = {
+        method: 'POST',
+        headers: {
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Host': 'jwgl.dhu.edu.cn'
+        }
+    }
+
+    fetch(`https://jwgl.dhu.edu.cn/dhu/StudentCourseTable/getData?studentCode=${req.query.studentCode}&yearTermId=${req.query.yearTermId}&yearTermName=${req.query.yearTermName}`, config)
         .then(response => response.text())
         .then(result => {
             let j
@@ -142,7 +219,14 @@ app.get('/api/loginGetToken', (req, res) => {
                             "Referer": "https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin",
                             "Referrer-Policy": "strict-origin-when-cross-origin"
                         },
-                        "body": `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&lt=${encodeURIComponent(lt)}&dllt=${encodeURIComponent(dllt)}&execution=${encodeURIComponent(execution)}&_eventId=${encodeURIComponent(_eventId)}&rmShown=${encodeURIComponent(rmShown)}`,
+                        "body": `username=${encodeURIComponent(username)}`
+                            + `&password=${encodeURIComponent(password)}`
+                            + `&lt=${encodeURIComponent(lt)}`
+                            + `&dllt=${encodeURIComponent(dllt)}`
+                            + `&execution=${encodeURIComponent(execution)}`
+                            + `&_eventId=${encodeURIComponent(_eventId)}`
+                            + `&rmShown=${encodeURIComponent(rmShown)}`,
+
                         "method": "POST",
                         "redirect": 'manual'
                     }
@@ -207,14 +291,6 @@ app.get('/api/loginGetToken', (req, res) => {
             console.log(error)
         })
 
-})
-
-app.post('/api/setToken', (req, res) => {
-    cookie.j = req.query.j
-    cookie.a = req.query.a
-    cookie.i = req.query.i
-    console.log(cookie)
-    res.json(cookie)
 })
 
 app.get('/api/ping', (req, res) => {

@@ -5,6 +5,7 @@ var interval = 3000
 var checkIfFull = true
 var particlesLoaded = false
 var particlesPaused = false
+var studentId
 
 // 深色模式
 !(function () {
@@ -48,7 +49,7 @@ document.getElementById("buttonDarkMode").addEventListener("click", () => {
 
 // 导轨
 !(function () {
-    let railItems = ["fucker", "cookie", "about"]
+    let railItems = ["fucker", "cookie", "table", "about"]
     function hideAll() {
         railItems.forEach(item => {
             document.getElementById(`${item}-content`).setAttribute("hidden", "true")
@@ -59,6 +60,10 @@ document.getElementById("buttonDarkMode").addEventListener("click", () => {
             hideAll()
             document.getElementById(`${item}-content`).removeAttribute("hidden")
 
+            // 加载课表
+            if (item == "table") {
+                buttonTableUpdate()
+            }
 
             // 粒子效果控制逻辑
             if (item == "about") {
@@ -111,10 +116,8 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
 !(async function () {
     document.getElementById("input-cookie-JSESSIONID").value = cookie.JSESSIONID ? cookie.JSESSIONID : ""
     document.getElementById("input-cookie-array").value = cookie.array ? cookie.array : ""
-    document.getElementById("input-cookie-iPlanetDirectoryPro").value = cookie.iPlanetDirectoryPro ? cookie.iPlanetDirectoryPro : ""
     document.getElementById("input-cookie-username").value = localStorage.getItem("DLSF_username") || ""
     document.getElementById("input-cookie-password").value = localStorage.getItem("DLSF_password") || ""
-    api("/setToken", { j: cookie.JSESSIONID, a: cookie.array, i: cookie.iPlanetDirectoryPro })
     if (!await checkCookie() && localStorage.getItem("DLSF_username") != "" && localStorage.getItem("DLSF_password") != "") {
         buttonSaveUser()
     }
@@ -135,7 +138,7 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
 // API
 async function apiPing() {
 
-    const baseURL = "http://localhost/api"
+    const baseURL = "http://" + window.location.hostname + "/api"
 
     let config = {
         method: "GET",
@@ -163,17 +166,24 @@ async function api(target, params) {
 
     let source = axios.CancelToken.source()
     cancelTokens[target + JSON.stringify(params)] = source.cancel
+    if (params) {
+        params = { ...params, j: cookie.JSESSIONID, a: cookie.array }
+    } else {
+        params = { j: cookie.JSESSIONID, a: cookie.array }
+    }
 
     let queryString = params ? Object.keys(params).map(key => key + '=' + encodeURIComponent(params[key])).join('&') : ''
 
-    const baseURL = "http://localhost/api"
+    const baseURL = "http://" + window.location.hostname + "/api"
 
     const methodMap = {
         "/studentui/initstudinfo": "GET",
         "/setToken": "POST",
         "/loginGetToken": "GET",
         "/selectcourse/initACC": "GET",
-        "/selectcourse/scSubmit": "POST"
+        "/selectcourse/scSubmit": "POST",
+        "/common/semesterSS": "GET",
+        "/StudentCourseTable/getData": "GET"
     }
 
     let config = {
@@ -204,12 +214,32 @@ async function api(target, params) {
 }
 
 
+// 获取学期列表
+var semesterList = []
+!(function () {
+    api("/common/semesterSS").then(result => {
+        semesterList = result.semesterSS.slice(0, 10)
+        semesterList.forEach(semester => {
+            var menuItem = document.createElement("mdui-menu-item")
+            menuItem.setAttribute("value", semester.id)
+            menuItem.innerText = semester.name
+            Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
+                element.appendChild(menuItem)
+            })
+            if (semester.current) {
+                Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
+                    element.setAttribute("value", semester.id)
+                })
+            }
+        })
+    })
+})()
+
+
 function buttonSaveCookie() {
     cookie.JSESSIONID = document.getElementById("input-cookie-JSESSIONID").value
     cookie.array = document.getElementById("input-cookie-array").value
-    cookie.iPlanetDirectoryPro = document.getElementById("input-cookie-iPlanetDirectoryPro").value
     localStorage.setItem("DLSF_cookie", JSON.stringify(cookie))
-    api("/setToken", { j: cookie.JSESSIONID, a: cookie.array, i: cookie.iPlanetDirectoryPro })
     checkCookie()
 }
 
@@ -352,6 +382,7 @@ async function checkCookie() {
         document.getElementById("checker-status").children[0].style["background"] = "lightgreen"
         document.getElementById("checker-status").children[1].innerHTML = "Token 检查通过"
         document.getElementById("checker-raw-text").innerHTML = JSON.stringify(result, null, 2).replace(/ /g, "&nbsp;").replace(/\n/g, "<br>")
+        studentId = result.studBasis.basisNo
         mdui.snackbar({
             message: "Token 检查通过",
             placement: "bottom-end"
@@ -552,4 +583,92 @@ function alertSwitchCheckIfFull(s) {
     } else {
         checkIfFull = true
     }
+}
+
+var buttonDarksideCounter = 0
+var isDarkside = false
+function buttonDarkside() {
+    buttonDarksideCounter++
+    setTimeout(() => {
+        buttonDarksideCounter--
+    }, 5000)
+    if (buttonDarksideCounter >= 7 || isDarkside) {
+        if (!isDarkside) { startDarkside() }
+        mdui.snackbar({
+            message: `您已处于 Darkside`,
+            placement: "top"
+        })
+    } else if (buttonDarksideCounter >= 4) {
+        mdui.snackbar({
+            message: `还需 ${7 - buttonDarksideCounter} 步即可进入 Darkside`,
+            placement: "top"
+        })
+    }
+}
+
+function startDarkside() {
+    isDarkside = true
+    mdui.setColorScheme("#FF0000")
+
+    Array.from(document.getElementsByClassName("darkside")).forEach(element => {
+        element.style["display"] = "block"
+    })
+
+    document.getElementById("dialog-darkside").open = true
+    setTimeout(() => {
+        document.getElementById("dialog-darkside").open = false
+    }, 3000)
+}
+
+function isNumeric(str) {
+    if (typeof str !== "string") return false
+    return !isNaN(str) && !isNaN(parseFloat(str))
+}
+
+function buttonTableUpdate() {
+    let id = document.getElementById("input-table-stdudent-id").value || studentId
+    let termId = document.getElementById("input-table-term").value
+    let termName = semesterList.find(semester => semester.id == termId).name
+    api("/StudentCourseTable/getData", { studentCode: id, yearTermId: termId, yearTermName: termName }).then(result => {
+        let t = result.content
+        t = t.replace(/<table[^>]*>/, "")
+        t = t.replace(/<\/table>/, "")
+        t = t.replace(/width="8%"/g, "")
+        t = t.replace(/width="11%"/g, "")
+        t = t.replace(/style="border-top:2pt solid black"/g, "")
+        t = t.replace(/<tr>(?:\s*<td>[^<]*<\/td>\s*){8}<\/tr>/, "")
+        t = t.replace('一节', 1)
+        t = t.replace('二节', 2)
+        t = t.replace('三节', 3)
+        t = t.replace('四节', 4)
+        t = t.replace('五节', 5)
+        t = t.replace('六节', 6)
+        t = t.replace('七节', 7)
+        t = t.replace('八节', 8)
+        t = t.replace('九节', 9)
+        t = t.replace('十节', 10)
+        t = t.replace('十一节', 11)
+        t = t.replace('十二节', 12)
+        t = t.replace('十三节', 13)
+
+        document.getElementById("table-tbody").innerHTML = t
+        tb = document.getElementById("table-tbody").innerHTML
+        var cells = document.querySelectorAll('#table-tbody td');
+        cells.forEach(cell => {
+            cell.style.verticalAlign = 'top'
+            if (cell.innerText && !isNumeric(cell.innerText)) {
+                cell.style["background-color"] = "#FFFFFF20"
+                cell.innerText = cell.innerText.replace("\n", " ")
+                let lesson = cell.innerText.split(" ")
+                cell.innerText = ""
+                for (let i = 0; i < lesson.length / 4; i++) {
+                    cell.innerHTML += `<div style="font-size: larger;font-weight: bold;">${lesson[4 * i + 0]}</div>`
+                    cell.innerHTML += `<div style="opacity: 0.75;">${lesson[4 * i + 1]} · ${lesson[4 * i + 3]}</div>`
+                    cell.innerHTML += `<div style="opacity: 0.35;">${lesson[4 * i + 2]}</div>`
+                    if (i + 1 < lesson.length / 4) { cell.innerHTML += `<hr style="opacity: 0.5;">` }
+                }
+            }
+        })
+    })
+
 }

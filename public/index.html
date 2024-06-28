@@ -26,7 +26,7 @@
 
     <link rel="shortcut icon" href="../resources/logo.ico">
 
-
+    <link rel="manifest" href="manifest.json" />
 
     <title>DLS Fucker</title>
 </head>
@@ -55,6 +55,10 @@
 
                 <mdui-navigation-rail-item icon="key--outlined" id="rail-cookie">
                     Auth
+                </mdui-navigation-rail-item>
+
+                <mdui-navigation-rail-item icon="table--outlined" id="rail-table">
+                    Table
                 </mdui-navigation-rail-item>
 
                 <mdui-navigation-rail-item icon="info--outlined" id="rail-about">
@@ -135,30 +139,6 @@
                             </tr>
                         </thead>
                         <tbody id="target-tbody">
-                            <tr>
-                                <td>275092</td>
-                                <td>造型材料与成型工艺</td>
-                                <th>最大/申请/已录</th>
-                                <td>白云峰</td>
-                                <td>1-16周</td>
-                                <td>周二.1.2节</td>
-                                <td style="padding: 0.3rem;display: flex;height: 100%;align-items: center;">
-                                    <mdui-button-icon icon="delete"></mdui-button-icon>
-                                    <mdui-button-icon icon="refresh"></mdui-button-icon>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>275091</td>
-                                <td>造型材料与成型工艺</td>
-                                <th>最大/申请/已录</th>
-                                <td>董威威</td>
-                                <td>1-16周</td>
-                                <td>周二.1.2节</td>
-                                <td style="padding: 0.3rem;display: flex;height: 100%;align-items: center;">
-                                    <mdui-button-icon icon="delete"></mdui-button-icon>
-                                    <mdui-button-icon icon="refresh"></mdui-button-icon>
-                                </td>
-                            </tr>
 
                         </tbody>
 
@@ -241,12 +221,12 @@
                         </div>
                         <div style="margin-bottom: 1rem;opacity: 0.75;">如果不想使用自动登录功能，可以手动填写 Cookie。
                         </div>
-                        <mdui-text-field style="margin-bottom: 1rem;" clearable label="JSESSIONID" type="password" value=""
-                            id="input-cookie-JSESSIONID"></mdui-text-field>
+                        <mdui-text-field style="margin-bottom: 1rem;" clearable label="JSESSIONID" type="password"
+                            value="" id="input-cookie-JSESSIONID"></mdui-text-field>
                         <mdui-text-field style="margin-bottom: 1rem;" clearable label="array" value=""
                             id="input-cookie-array"></mdui-text-field>
-                        <mdui-text-field style="margin-bottom: 1rem;" clearable label="iPlanetDirectoryPro (非必填)"
-                            value="" id="input-cookie-iPlanetDirectoryPro"></mdui-text-field>
+                        <!-- <mdui-text-field style="margin-bottom: 1rem;" clearable label="iPlanetDirectoryPro (非必填)"
+                            value="" id="input-cookie-iPlanetDirectoryPro"></mdui-text-field> -->
                         <mdui-button variant="filled" onclick="buttonSaveCookie()">保存</mdui-button>
                     </mdui-card>
 
@@ -279,6 +259,53 @@
 
             </div>
 
+
+            <div id="table-content" class="panel-content" hidden>
+
+                <mdui-card variant="elevated" class="grid-card" style="margin-bottom: 0.75rem;">
+                    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+                        <mdui-icon name="table" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+                        <div style="font-size: x-large;font-weight: bold;">Table</div>
+                    </div>
+                    <div style="margin-bottom: 1rem;opacity: 0.75;">课程表。</div>
+                    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+                        <mdui-select id="input-table-term" class="semester-select" variant="outlined" value="item-1"
+                            style="width: 10rem;">
+                        </mdui-select>
+
+                        <mdui-text-field id="input-table-stdudent-id"
+                            style="width: 15rem;margin-left:1rem;display: none;" clearable class="darkside"
+                            label="学号（Darkside）" value=""></mdui-text-field>
+
+                        <mdui-button style="margin-left:1rem;" onclick="buttonTableUpdate()">查询</mdui-button>
+                    </div>
+
+                    <table class="mdui-table"
+                        style="margin: 0; table-layout: fixed; height: 10rem;vertical-align: top;">
+                        <thead>
+                            <tr>
+                                <th style="width: 2rem;"></th>
+                                <th>星期一</th>
+                                <th>星期二</th>
+                                <th>星期三</th>
+                                <th>星期四</th>
+                                <th>星期五</th>
+                                <th>星期六</th>
+                                <th>星期日</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-tbody">
+
+                        </tbody>
+                    </table>
+
+
+                </mdui-card>
+
+            </div>
+
+
+
             <div id="about-content" class="panel-content" hidden>
 
                 <mdui-card variant="elevated" class="grid-card" style="text-align: center;padding: 0;">
@@ -293,7 +320,7 @@
                             Created By PotatoD3v
                         </div>
 
-                        <div style="opacity: 0.5;"> - 现代世界的魔法师 - </div>
+                        <div style="opacity: 0.5;" onclick="buttonDarkside()"> - 现代世界的魔法师 - </div>
 
                         <br>
 
@@ -337,8 +364,15 @@
 
             </div>
 
-            <mdui-dialog id="dialog-backend-disconnected" headline="与后端的通信连接已断开"
-                description="在使用过程中，不要关闭控制台窗口。请关闭本页面后再次启动 DLSF。" icon="warning">
+            <mdui-dialog id="dialog-backend-disconnected" headline="与后端的通信连接已断开" icon="warning"
+                description="在使用过程中，不要关闭控制台窗口。请关闭本页面后再次启动 DLSF。">
+
+            </mdui-dialog>
+
+            <mdui-dialog id="dialog-darkside" headline="Welcome to the Darkside." icon="cruelty_free"
+                description="欢迎来到暗面，隐藏功能已解锁。">
+
+
             </mdui-dialog>
 
         </mdui-layout-main>
@@ -348,6 +382,27 @@
     <link rel="stylesheet" href="main.css" />
 
     <script src="main.js"></script>
+
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker
+                    .register("/service-worker.js")
+                    .then(res => console.log("service worker registered"))
+                    .catch(err => console.log("service worker not registered", err))
+            })
+        }
+
+        let deferredPrompt
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault()
+            deferredPrompt = event
+            deferredPrompt.prompt()
+        })
+
+    </script>
 
 </body>
 

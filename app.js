@@ -2,11 +2,12 @@ var express = require('express')
 var encryptAES = require('./crypto')
 
 const app = express()
-const safeMode = false
+const safeMode = true
 // 此变量将决定是否开启后端安全模式
 // 如果开启，后端将限制访问 IP 为本机
 // 如果你需要在其他设备上访问，请关闭此变量
 // !!不要在不受信任的网络环境中关闭安全模式!!
+const port = 3000
 
 cookie = {}
 
@@ -299,7 +300,7 @@ app.get('/api/ping', (req, res) => {
 
 app.use(express.static('public'))
 
-app.listen(80, () => {
+app.listen(port, () => {
     console.log(`
 ██████╗ ██╗     ███████╗    ███████╗██╗   ██╗ ██████╗██╗  ██╗███████╗██████╗ 
 ██╔══██╗██║     ██╔════╝    ██╔════╝██║   ██║██╔════╝██║ ██╔╝██╔════╝██╔══██╗
@@ -315,5 +316,5 @@ app.listen(80, () => {
 
 
 import("open").then((open) => {
-    open.default('http://localhost')
+    open.default('http://localhost:' + port)
 })

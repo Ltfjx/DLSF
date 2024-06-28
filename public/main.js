@@ -138,7 +138,7 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
 // API
 async function apiPing() {
 
-    const baseURL = "http://" + window.location.hostname + "/api"
+    const baseURL = "http://" + window.location.host + "/api"
 
     let config = {
         method: "GET",
@@ -174,7 +174,7 @@ async function api(target, params) {
 
     let queryString = params ? Object.keys(params).map(key => key + '=' + encodeURIComponent(params[key])).join('&') : ''
 
-    const baseURL = "http://" + window.location.hostname + "/api"
+    const baseURL = "http://" + window.location.host + "/api"
 
     const methodMap = {
         "/studentui/initstudinfo": "GET",

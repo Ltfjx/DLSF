@@ -393,14 +393,6 @@
             })
         }
 
-        let deferredPrompt
-
-        window.addEventListener('beforeinstallprompt', (event) => {
-            event.preventDefault()
-            deferredPrompt = event
-            deferredPrompt.prompt()
-        })
-
     </script>
 
 </body>

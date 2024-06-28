@@ -17,7 +17,8 @@
 }
 
 code {
-  font-family: "Consolas";
+  font-family: "UbuntuMono";
+  font-weight: 400;
 }
 
 /* fix sth */
@@ -30,6 +31,12 @@ code {
   font-family: YUYUKO SCRIPT;
   src: url('./YUYUKO.otf')
 }
+
+@font-face {
+  font-family: UbuntuMono;
+  src: url('./UbuntuMono-Regular.ttf')
+}
+
 
 #particles-js {
   position: absolute;

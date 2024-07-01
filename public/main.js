@@ -49,7 +49,7 @@ document.getElementById("buttonDarkMode").addEventListener("click", () => {
 
 // 导轨
 !(function () {
-    let railItems = ["fucker", "cookie", "table", "about"]
+    let railItems = ["fucker", "cookie", "table", "settings", "about"]
     function hideAll() {
         railItems.forEach(item => {
             document.getElementById(`${item}-content`).setAttribute("hidden", "true")
@@ -118,6 +118,7 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
     document.getElementById("input-cookie-array").value = cookie.array ? cookie.array : ""
     document.getElementById("input-cookie-username").value = localStorage.getItem("DLSF_username") || ""
     document.getElementById("input-cookie-password").value = localStorage.getItem("DLSF_password") || ""
+    document.getElementById("settings-checkbox-checkupdate").checked = localStorage.getItem("DLSF_checkupdate") == "true" ? true : false
     if (!await checkCookie() && localStorage.getItem("DLSF_username") != "" && localStorage.getItem("DLSF_password") != "") {
         buttonSaveUser()
     }
@@ -235,6 +236,7 @@ function buttonSaveUser() {
         } else {
             mdui.snackbar({
                 message: "Cookie 更新失败，请检查用户名和密码",
+                closeable: true,
                 placement: "bottom-end"
             })
         }
@@ -362,10 +364,6 @@ async function checkCookie() {
         document.getElementById("checker-status").children[1].innerHTML = "Token 检查通过"
         document.getElementById("checker-raw-text").innerHTML = JSON.stringify(result, null, 2).replace(/ /g, "&nbsp;").replace(/\n/g, "<br>")
         studentId = result.studBasis.basisNo
-        mdui.snackbar({
-            message: "Token 检查通过",
-            placement: "bottom-end"
-        })
         return true
     } else {
         document.getElementById("checker-status").children[0].style["background"] = "lightcoral"
@@ -373,6 +371,7 @@ async function checkCookie() {
         document.getElementById("checker-raw-text").innerHTML = "(╯‵□′)╯︵┻━┻"
         mdui.snackbar({
             message: "Token 验证失败，请检查填写是否有误",
+            closeable: true,
             placement: "bottom-end"
         })
         return false
@@ -520,14 +519,15 @@ function targetRefresh(courseCode, id) {
         target.room = lessonData.roomcode1
         target.info = lessonData.priorMajors
         targetListRender()
+        targetSave()
+    }).catch(error => {
+        console.error(error)
         mdui.snackbar({
-            message: "课程信息获取成功",
+            message: "课程信息获取失败",
             closeable: true,
             placement: "bottom-end"
         })
-        targetSave()
     })
-
 }
 
 function targetSave() {
@@ -652,6 +652,28 @@ function buttonTableUpdate() {
 
 }
 
+function buttonClearAllData() {
+    mdui.confirm({
+        headline: "要清除所有数据吗？",
+        description: "仅在出现错误时使用，清除后将无法恢复，请谨慎操作！",
+        icon: "warning",
+        confirmText: "确定",
+        cancelText: "取消",
+        onConfirm: () => {
+            localStorage.clear()
+            location.reload()
+        },
+        onCancel: () => { }
+    })
+}
+
+function checkboxCheckupdate() {
+    if (document.getElementById("settings-checkbox-checkupdate").checked) {
+        localStorage.setItem("DLSF_checkupdate", "true")
+    } else {
+        localStorage.setItem("DLSF_checkupdate", "false")
+    }
+}
 
 // 获取学期列表
 var semesterList = []
@@ -681,7 +703,7 @@ var semesterList = []
 
 
 // 版本检查
-!(function () {
+if (localStorage.getItem("DLSF_checkupdate") == "true") {
     api("/version").then(async result => {
         document.getElementById("version-current").innerText = result.currentVersion
         const versionCurrent = result.currentVersion.slice(0, 7)
@@ -700,4 +722,5 @@ var semesterList = []
             console.error('Error fetching latest commit hash:', error)
         }
     })
-})()
+}
+

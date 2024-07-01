@@ -655,7 +655,7 @@ function buttonTableUpdate() {
 
 // 获取学期列表
 var semesterList = []
-!(function () {
+!(function getSemester() {
     api("/common/semesterSS").then(result => {
         semesterList = result.semesterSS.slice(0, 10)
         semesterList.forEach(semester => {
@@ -671,8 +671,14 @@ var semesterList = []
                 })
             }
         })
+    }).catch(() => {
+        console.log("Error fetching semester list, retrying in 5 seconds...")
+        setTimeout(() => {
+            getSemester()
+        }, 5000)
     })
 })()
+
 
 // 版本检查
 !(function () {

@@ -1,5 +1,6 @@
-var express = require('express')
-var encryptAES = require('./crypto')
+const express = require('express')
+const encryptAES = require('./crypto')
+const simpleGit = require('simple-git');
 
 const app = express()
 const safeMode = true
@@ -294,6 +295,19 @@ app.get('/api/loginGetToken', (req, res) => {
 
 })
 
+const git = simpleGit()
+
+app.get('/api/version', async (req, res) => {
+    try {
+        const log = await git.log()
+        const currentCommit = log.latest.hash
+        res.json({ "currentVersion": currentCommit })
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({ "DLSF_SUCCESS": false })
+    }
+})
+
 app.get('/api/ping', (req, res) => {
     res.send("OK")
 })
@@ -313,7 +327,6 @@ app.listen(port, () => {
     console.log("")
     console.log("===============================================================")
 })
-
 
 import("open").then((open) => {
     open.default('http://localhost:' + port)

@@ -183,7 +183,8 @@ async function api(target, params) {
         "/selectcourse/initACC": "GET",
         "/selectcourse/scSubmit": "POST",
         "/common/semesterSS": "GET",
-        "/StudentCourseTable/getData": "GET"
+        "/StudentCourseTable/getData": "GET",
+        "/version": "GET"
     }
 
     let config = {
@@ -212,28 +213,6 @@ async function api(target, params) {
     })
 
 }
-
-
-// 获取学期列表
-var semesterList = []
-!(function () {
-    api("/common/semesterSS").then(result => {
-        semesterList = result.semesterSS.slice(0, 10)
-        semesterList.forEach(semester => {
-            var menuItem = document.createElement("mdui-menu-item")
-            menuItem.setAttribute("value", semester.id)
-            menuItem.innerText = semester.name
-            Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
-                element.appendChild(menuItem)
-            })
-            if (semester.current) {
-                Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
-                    element.setAttribute("value", semester.id)
-                })
-            }
-        })
-    })
-})()
 
 
 function buttonSaveCookie() {
@@ -672,3 +651,47 @@ function buttonTableUpdate() {
     })
 
 }
+
+
+// 获取学期列表
+var semesterList = []
+!(function () {
+    api("/common/semesterSS").then(result => {
+        semesterList = result.semesterSS.slice(0, 10)
+        semesterList.forEach(semester => {
+            var menuItem = document.createElement("mdui-menu-item")
+            menuItem.setAttribute("value", semester.id)
+            menuItem.innerText = semester.name
+            Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
+                element.appendChild(menuItem)
+            })
+            if (semester.current) {
+                Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
+                    element.setAttribute("value", semester.id)
+                })
+            }
+        })
+    })
+})()
+
+// 版本检查
+!(function () {
+    api("/version").then(async result => {
+        document.getElementById("version-current").innerText = result.currentVersion
+        const versionCurrent = result.currentVersion.slice(0, 7)
+        try {
+            const response = await fetch(`https://api.github.com/repos/Ltfjx/DLSF/commits`)
+            const data = await response.json()
+            document.getElementById("version-latest").innerText = data[0].sha
+            const versionLatest = data[0].sha.slice(0, 7)
+            if (versionCurrent != versionLatest) {
+                mdui.snackbar({
+                    message: `检测到新版本 ${versionCurrent} -> ${versionLatest}，请前往 Github 获取更新。`,
+                    placement: "top"
+                })
+            }
+        } catch (error) {
+            console.error('Error fetching latest commit hash:', error)
+        }
+    })
+})()

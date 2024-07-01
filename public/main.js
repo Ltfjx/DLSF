@@ -114,6 +114,7 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
 
 
 !(async function () {
+    if (!localStorage.getItem("DLSF_checkupdate")) { localStorage.setItem("DLSF_checkupdate", "true") }
     document.getElementById("input-cookie-JSESSIONID").value = cookie.JSESSIONID ? cookie.JSESSIONID : ""
     document.getElementById("input-cookie-array").value = cookie.array ? cookie.array : ""
     document.getElementById("input-cookie-username").value = localStorage.getItem("DLSF_username") || ""

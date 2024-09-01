@@ -1,0 +1,16 @@
+# DLSF 配置文件
+
+## 自动启动浏览器 [ True | False ]
+auto_satart_browser: True
+
+## 日志等级 [ TRACE | DEBUG | INFO | WARNING | ERROR | FATAL ]
+log_level: INFO
+
+## DLSF 端口 [ 1024 - 65535 ]
+port: 3000
+
+## 是否开启安全模式 [ True | False ]
+## 如果开启，后端将限制访问 IP 为本机
+## 如果你需要在其他设备上访问，请关闭此变量
+## !!不要在不受信任的网络环境中关闭安全模式!!
+safe_mode: True

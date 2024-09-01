@@ -7,62 +7,27 @@ var particlesLoaded = false
 var particlesPaused = false
 var studentId
 
-// 深色模式
-!(function () {
-    const darkMode = localStorage.getItem('darkMode')
-    if (darkMode === 'true' || darkMode === null) {
-        document.getElementById("buttonDarkMode").icon = "light_mode"
-        mdui.setTheme("dark")
-    }
-})()
-
-document.getElementById("buttonDarkMode").addEventListener("click", () => {
-
-    if (mdui.getTheme() == "light") {
-        document.getElementById("buttonDarkMode").icon = "light_mode"
-        localStorage.setItem('darkMode', 'true')
-        mdui.setTheme("dark")
-    } else {
-        document.getElementById("buttonDarkMode").icon = "dark_mode"
-        localStorage.setItem('darkMode', 'false')
-        mdui.setTheme("light")
-    }
-})
-
-
-// 配色自定义系统
-!(function () {
-    let colorPicker = document.getElementById("colorPicker")
-    let color = localStorage.getItem("customColor")
-    if (color != undefined) {
-        mdui.setColorScheme(color)
-    }
-    colorPicker.addEventListener('input', function () {
-        mdui.setColorScheme(colorPicker.value)
-        localStorage.setItem("customColor", colorPicker.value)
-    })
-    document.getElementById("buttonColor").addEventListener("click", () => {
-        colorPicker.click()
-    })
-})()
-
 
 // 导轨
 !(function () {
-    let railItems = ["fucker", "cookie", "table", "settings", "about"]
+    let railItems = ["fucker", "cookie", "table", "settings", "query", "about"]
     function hideAll() {
         railItems.forEach(item => {
             document.getElementById(`${item}-content`).setAttribute("hidden", "true")
         })
     }
     railItems.forEach(item => {
-        document.getElementById(`rail-${item}`).addEventListener("click", () => {
+        document.getElementById(`rail-${item}`).addEventListener("click", async () => {
             hideAll()
             document.getElementById(`${item}-content`).removeAttribute("hidden")
 
             // 加载课表
             if (item == "table") {
-                buttonTableUpdate()
+                await buttonTableUpdate()
+            }
+
+            if (item == "query") {
+                loadLessonDatabase(document.getElementById("input-query-term").value)
             }
 
             // 粒子效果控制逻辑
@@ -88,25 +53,6 @@ document.getElementById("buttonDarkMode").addEventListener("click", () => {
     document.getElementById(`rail-${railItems[0]}`).click()
 })()
 
-// Clock
-!(function () {
-    function updateClock() {
-        var now = new Date()
-        var hours = now.getHours()
-        var minutes = now.getMinutes()
-        var seconds = now.getSeconds()
-
-        hours = hours < 10 ? '0' + hours : hours
-        minutes = minutes < 10 ? '0' + minutes : minutes
-        seconds = seconds < 10 ? '0' + seconds : seconds
-
-        var timeString = hours + ':' + minutes + ':' + seconds
-
-        document.getElementById('clock').innerHTML = timeString
-    }
-    setInterval(updateClock, 1000)
-    updateClock()
-})()
 
 // 设置项初始化
 var cookie = JSON.parse(localStorage.getItem("DLSF_cookie")) || {}
@@ -120,128 +66,64 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
     document.getElementById("input-cookie-username").value = localStorage.getItem("DLSF_username") || ""
     document.getElementById("input-cookie-password").value = localStorage.getItem("DLSF_password") || ""
     document.getElementById("settings-checkbox-checkupdate").checked = localStorage.getItem("DLSF_checkupdate") == "true" ? true : false
-    if (!await checkCookie() && localStorage.getItem("DLSF_username") != "" && localStorage.getItem("DLSF_password") != "") {
-        buttonSaveUser()
-    }
     targetListRender()
+    // 如果 cookie 失效，尝试使用用户名密码登录
+    if (!await checkCookie()) { buttonSaveUser() }
+})()
+
+!(async function () {
+
 })()
 
 
-// 心跳包
-!(function () {
-    setInterval(() => {
-        apiPing()
-            .then(() => { document.getElementById("dialog-backend-disconnected").open = false })
-            .catch(() => { document.getElementById("dialog-backend-disconnected").open = true })
-    }, 3000)
-})()
-
-
-// API
-async function apiPing() {
-
-    const baseURL = "http://" + window.location.host + "/api"
-
-    let config = {
-        method: "GET",
-        url: baseURL + "/ping",
-        timeout: 1000
-    }
-
-    return new Promise((resolve, reject) => {
-        axios(config)
-            .then(function () {
-                resolve(true)
-            })
-            .catch(function () {
-                reject(false)
-            })
-    })
-
-
-}
-
-async function api(target, params) {
-    if (cancelTokens[target + JSON.stringify(params)]) {
-        cancelTokens[target + JSON.stringify(params)]()
-    }
-
-    let source = axios.CancelToken.source()
-    cancelTokens[target + JSON.stringify(params)] = source.cancel
-    if (params) {
-        params = { ...params, j: cookie.JSESSIONID, a: cookie.array }
-    } else {
-        params = { j: cookie.JSESSIONID, a: cookie.array }
-    }
-
-    let queryString = params ? Object.keys(params).map(key => key + '=' + encodeURIComponent(params[key])).join('&') : ''
-
-    const baseURL = "http://" + window.location.host + "/api"
-
-    const methodMap = {
-        "/studentui/initstudinfo": "GET",
-        "/setToken": "POST",
-        "/loginGetToken": "GET",
-        "/selectcourse/initACC": "GET",
-        "/selectcourse/scSubmit": "POST",
-        "/common/semesterSS": "GET",
-        "/StudentCourseTable/getData": "GET",
-        "/version": "GET"
-    }
-
-    let config = {
-        method: methodMap[target],
-        url: baseURL + target + "?" + queryString,
-        cancelToken: source.token
-    }
-
-    return new Promise((resolve, reject) => {
-        axios(config)
-            .then(function (response) {
-                console.log(response.data)
-                resolve(response.data)
-            })
-            .catch(function (error) {
-                console.log(error)
-                if (!error.code == "ERR_CANCELED") {
-                    mdui.snackbar({
-                        message: target + " API 请求出现了错误，请报告给开发者",
-                        closeable: true,
-                        placement: "bottom-end"
-                    })
-                }
-                reject(null)
-            })
-    })
-
-}
-
-
-function buttonSaveCookie() {
+async function buttonSaveCookie() {
     cookie.JSESSIONID = document.getElementById("input-cookie-JSESSIONID").value
     cookie.array = document.getElementById("input-cookie-array").value
     localStorage.setItem("DLSF_cookie", JSON.stringify(cookie))
-    checkCookie()
+    if (await checkCookie()) { showMessage("Token 检查通过") } else { showMessage("Token 验证失败，请检查填写是否有误") }
 }
 
-function buttonSaveUser() {
+async function checkCookie() {
+    document.getElementById("checker-status").children[0].style["background"] = "lightgoldenrodyellow"
+    document.getElementById("checker-status").children[1].innerHTML = "正在检查..."
+    document.getElementById("checker-raw-text").innerHTML = "..."
+    const result = await api("/studentui/initstudinfo")
+    if (result.success) {
+        document.getElementById("checker-status").children[0].style["background"] = "lightgreen"
+        document.getElementById("checker-status").children[1].innerHTML = "Token 检查通过"
+        document.getElementById("checker-raw-text").innerHTML = JSON.stringify(result, null, 2).replace(/ /g, "&nbsp;").replace(/\n/g, "<br>")
+        studentId = result.studBasis.basisNo
+        return true
+    } else {
+        document.getElementById("checker-status").children[0].style["background"] = "lightcoral"
+        document.getElementById("checker-status").children[1].innerHTML = "Token 验证失败，请检查填写是否有误"
+        document.getElementById("checker-raw-text").innerHTML = "(╯‵□′)╯︵┻━┻"
+        return false
+    }
+}
+
+
+async function buttonSaveUser() {
     const username = document.getElementById("input-cookie-username").value
     const password = document.getElementById("input-cookie-password").value
     localStorage.setItem("DLSF_username", username)
     localStorage.setItem("DLSF_password", password)
-    api("/loginGetToken", { username: username, password: password }).then(result => {
-        if (result.DLSF_SUCCESS) {
-            document.getElementById("input-cookie-JSESSIONID").value = result.JSESSIONID
-            document.getElementById("input-cookie-array").value = result.array
-            buttonSaveCookie()
-        } else {
-            mdui.snackbar({
-                message: "Cookie 更新失败，请检查用户名和密码",
-                closeable: true,
-                placement: "bottom-end"
-            })
-        }
-    })
+    if (await loginUser()) { showMessage("自动登录成功") } else { showMessage("自动登录失败，请检查用户名和密码") }
+}
+
+async function loginUser() {
+    const result = await api("/dlsf/loginGetToken", { username: localStorage.getItem("DLSF_username"), password: localStorage.getItem("DLSF_password") })
+    if (result.DLSF_SUCCESS) {
+        document.getElementById("input-cookie-JSESSIONID").value = result.JSESSIONID
+        document.getElementById("input-cookie-array").value = result.array
+        cookie.JSESSIONID = result.JSESSIONID
+        cookie.array = result.array
+        localStorage.setItem("DLSF_cookie", JSON.stringify(cookie))
+        checkCookie()
+        return true
+    } else {
+        return false
+    }
 }
 
 function switchMain() {
@@ -355,30 +237,6 @@ function switchMain() {
     }
 }
 
-async function checkCookie() {
-    document.getElementById("checker-status").children[0].style["background"] = "lightgoldenrodyellow"
-    document.getElementById("checker-status").children[1].innerHTML = "正在检查..."
-    document.getElementById("checker-raw-text").innerHTML = "..."
-    result = await api("/studentui/initstudinfo")
-    if (result.success) {
-        document.getElementById("checker-status").children[0].style["background"] = "lightgreen"
-        document.getElementById("checker-status").children[1].innerHTML = "Token 检查通过"
-        document.getElementById("checker-raw-text").innerHTML = JSON.stringify(result, null, 2).replace(/ /g, "&nbsp;").replace(/\n/g, "<br>")
-        studentId = result.studBasis.basisNo
-        return true
-    } else {
-        document.getElementById("checker-status").children[0].style["background"] = "lightcoral"
-        document.getElementById("checker-status").children[1].innerHTML = "Token 验证失败，请检查填写是否有误"
-        document.getElementById("checker-raw-text").innerHTML = "(╯‵□′)╯︵┻━┻"
-        mdui.snackbar({
-            message: "Token 验证失败，请检查填写是否有误",
-            closeable: true,
-            placement: "bottom-end"
-        })
-        return false
-    }
-
-}
 
 
 
@@ -415,9 +273,6 @@ function buttonTargetAdd() {
         targetAdd(courseCode, id)
     } else if (courseCode) {
         dialogTargetAddOpen()
-        let style = document.createElement('style')
-        style.innerHTML = '.panel {max-width: 80rem !important;}'
-        document.getElementById("dialog-target-add").shadowRoot.appendChild(style)
 
         let t = document.getElementById("target-add-tbody")
         t.innerHTML = ""
@@ -427,7 +282,7 @@ function buttonTargetAdd() {
             document.getElementById("dialog-target-add-title").innerHTML = result.curCourse.kcmc
             result.aaData.forEach(course => {
                 t.innerHTML += `
-                <tr>
+                <tr style="background-color: ${course.enrollCnt >= course.maxCnt ? "#FF000018" : ""};">
                     <td>${course.cttId}</td>
                     <th>${course.maxCnt}/${course.applyCnt}/${course.enrollCnt}</th>
                     <td>${course.techName}</td>
@@ -445,22 +300,14 @@ function buttonTargetAdd() {
 
 
     } else {
-        mdui.snackbar({
-            message: "请填写课程编号",
-            closeable: true,
-            placement: "bottom-end"
-        })
+        showMessage("请填写课程编号")
     }
 
 }
 
 function targetAdd(courseCode, id) {
     if (targetList.some(t => t.id == id)) {
-        mdui.snackbar({
-            message: "选课序号有重复，请重新输入",
-            closeable: true,
-            placement: "bottom-end"
-        })
+        showMessage("该课程已存在于列表中")
     } else {
         targetList.push({
             "id": id,
@@ -523,11 +370,7 @@ function targetRefresh(courseCode, id) {
         targetSave()
     }).catch(error => {
         console.error(error)
-        mdui.snackbar({
-            message: "课程信息获取失败",
-            closeable: true,
-            placement: "bottom-end"
-        })
+        showMessage("课程信息获取失败")
     })
 }
 
@@ -565,45 +408,7 @@ function alertSwitchCheckIfFull(s) {
     }
 }
 
-var buttonDarksideCounter = 0
-var isDarkside = false
-function buttonDarkside() {
-    buttonDarksideCounter++
-    setTimeout(() => {
-        buttonDarksideCounter--
-    }, 5000)
-    if (buttonDarksideCounter >= 7 || isDarkside) {
-        if (!isDarkside) { startDarkside() }
-        mdui.snackbar({
-            message: `您已处于 Darkside`,
-            placement: "top"
-        })
-    } else if (buttonDarksideCounter >= 4) {
-        mdui.snackbar({
-            message: `还需 ${7 - buttonDarksideCounter} 步即可进入 Darkside`,
-            placement: "top"
-        })
-    }
-}
 
-function startDarkside() {
-    isDarkside = true
-    mdui.setColorScheme("#FF0000")
-
-    Array.from(document.getElementsByClassName("darkside")).forEach(element => {
-        element.style["display"] = "block"
-    })
-
-    document.getElementById("dialog-darkside").open = true
-    setTimeout(() => {
-        document.getElementById("dialog-darkside").open = false
-    }, 3000)
-}
-
-function isNumeric(str) {
-    if (typeof str !== "string") return false
-    return !isNaN(str) && !isNaN(parseFloat(str))
-}
 
 function buttonTableUpdate() {
     let id = document.getElementById("input-table-stdudent-id").value || studentId
@@ -680,14 +485,17 @@ function checkboxCheckupdate() {
 var semesterList = []
 !(function getSemester() {
     api("/common/semesterSS").then(result => {
-        semesterList = result.semesterSS.slice(0, 10)
+        semesterList = result.semesterSS.slice(0, 10);
         semesterList.forEach(semester => {
-            var menuItem = document.createElement("mdui-menu-item")
+            const menuItem = document.createElement("mdui-menu-item")
             menuItem.setAttribute("value", semester.id)
             menuItem.innerText = semester.name
+
             Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
-                element.appendChild(menuItem)
+                const newMenuItem = menuItem.cloneNode(true)
+                element.appendChild(newMenuItem)
             })
+
             if (semester.current) {
                 Array.from(document.getElementsByClassName("semester-select")).forEach(element => {
                     element.setAttribute("value", semester.id)
@@ -703,25 +511,4 @@ var semesterList = []
 })()
 
 
-// 版本检查
-if (localStorage.getItem("DLSF_checkupdate") == "true") {
-    api("/version").then(async result => {
-        document.getElementById("version-current").innerText = result.currentVersion
-        const versionCurrent = result.currentVersion.slice(0, 7)
-        try {
-            const response = await fetch(`https://api.github.com/repos/Ltfjx/DLSF/commits`)
-            const data = await response.json()
-            document.getElementById("version-latest").innerText = data[0].sha
-            const versionLatest = data[0].sha.slice(0, 7)
-            if (versionCurrent != versionLatest) {
-                mdui.snackbar({
-                    message: `检测到新版本 ${versionCurrent} -> ${versionLatest}，请前往 Github 获取更新。`,
-                    placement: "top"
-                })
-            }
-        } catch (error) {
-            console.error('Error fetching latest commit hash:', error)
-        }
-    })
-}
 

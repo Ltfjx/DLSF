@@ -1,30 +1,72 @@
 const express = require('express')
-const encryptAES = require('./crypto')
-const simpleGit = require('simple-git');
+const encryptAES = require('./utils/encryptAES')
+const simpleGit = require('simple-git')
+const ejs = require('ejs')
+const log4js = require('log4js')
+const yaml = require('yaml')
+const fs = require('fs')
+
+console.log(`
+██████╗ ██╗     ███████╗    ███████╗██╗   ██╗ ██████╗██╗  ██╗███████╗██████╗ 
+██╔══██╗██║     ██╔════╝    ██╔════╝██║   ██║██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+██║  ██║██║     ███████╗    █████╗  ██║   ██║██║     █████╔╝ █████╗  ██████╔╝
+██║  ██║██║     ╚════██║    ██╔══╝  ██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
+██████╔╝███████╗███████║    ██║     ╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║
+╚═════╝ ╚══════╝╚══════╝    ╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝`)
+console.log("DLS FUCKER @PotatoDev | 现代世界的魔法师")
+console.log("============================================================================")
+
+
+const logger = log4js.getLogger("main")
+logger.level = "trace"
+logger.info("DLSF 正在启动...")
+
+
+var config = {}
+try {
+    config = yaml.parse(fs.readFileSync('./config.yml', 'utf8'))
+} catch (error) {
+    if (!fs.existsSync('./config.yml')) {
+        logger.warn("配置文件不存在，正在创建默认配置...")
+        fs.copyFileSync('./config.yml.default', './config.yml')
+        config = yaml.parse(fs.readFileSync('./config.yml', 'utf8'))
+    } else {
+        logger.error("配置文件解析失败，请检查配置文件是否存在或格式是否正确或直接删除目录下 config.yaml 文件并重启程序")
+        logger.error(error)
+        process.exit(1)
+    }
+}
+logger.level = config.log_level
+logger.info("配置文件加载成功")
+logger.trace(config)
 
 const app = express()
-const safeMode = true
-// 此变量将决定是否开启后端安全模式
-// 如果开启，后端将限制访问 IP 为本机
-// 如果你需要在其他设备上访问，请关闭此变量
-// !!不要在不受信任的网络环境中关闭安全模式!!
-const port = 3000
-
-cookie = {}
+const safeMode = config.safe_mode
+const port = config.port
 
 if (safeMode) {
     app.use((req, res, next) => {
         const allowedIps = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
         const clientIp = req.ip
         if (!allowedIps.includes(clientIp)) {
-            res.status(403).send('DLSF_FORBIDDEN')
+            res.status(403).send('DLSF_403_FORBIDDEN')
+            logger.debug(`阻挡外部访问 IP：${clientIp}`)
         } else {
             next()
         }
     })
 } else {
-    console.log("!! 当前安全模式已关闭，在公共网络环境下可能遭受攻击！")
+    logger.warn("当前安全模式已关闭，在公共网络环境下可能遭受攻击！")
 }
+
+app.use((req, res, next) => {
+    if (!req.url.startsWith("/api")) {
+        logger.trace("STATIC" + " " + req.url)
+    } else if (!req.url.endsWith("/ping")) {
+        logger.debug("API " + req.method + " " + req.url)
+    }
+    next()
+})
 
 app.get('/api/studentui/initstudinfo', (req, res) => {
 
@@ -43,7 +85,7 @@ app.get('/api/studentui/initstudinfo', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-                console.log(j)
+
                 res.json(j)
             } catch (error) {
                 console.log(error)
@@ -73,7 +115,7 @@ app.get('/api/selectcourse/initACC', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-                console.log(j)
+
                 res.json(j)
             } catch (error) {
                 console.log(error)
@@ -102,7 +144,7 @@ app.post('/api/selectcourse/scSubmit', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-                console.log(j)
+
                 res.json(j)
             } catch (error) {
                 console.log(error)
@@ -131,7 +173,7 @@ app.get('/api/common/semesterSS', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-                console.log(j)
+
                 res.json(j)
             } catch (error) {
                 console.log(error)
@@ -160,7 +202,7 @@ app.get('/api/StudentCourseTable/getData', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-                console.log(j)
+
                 res.json(j)
             } catch (error) {
                 console.log(error)
@@ -173,7 +215,36 @@ app.get('/api/StudentCourseTable/getData', (req, res) => {
         })
 })
 
-app.get('/api/loginGetToken', (req, res) => {
+app.get('/api/PublicQuery/getSelectCourseTermList', (req, res) => {
+    let config = {
+        method: 'POST',
+        headers: {
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Host': 'jwgl.dhu.edu.cn'
+        }
+    }
+
+    fetch(`https://jwgl.dhu.edu.cn/dhu/PublicQuery/getSelectCourseTermList?termId=${req.query.termId}&iDisplayStart=${0}&iDisplayLength=${10000}`, config)
+        .then(response => response.text())
+        .then(result => {
+            let j
+            try {
+                j = JSON.parse(result)
+
+                res.json(j)
+            } catch (error) {
+                console.log(error)
+                res.json({ "DLSF_SUCCESS": false })
+            }
+        })
+        .catch(error => {
+            console.log(error)
+            res.json({ "DLSF_SUCCESS": false })
+        })
+})
+
+app.get('/api/dlsf/loginGetToken', (req, res) => {
     const username = req.query.username
     const unsalted_password = req.query.password
     fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin")
@@ -297,7 +368,7 @@ app.get('/api/loginGetToken', (req, res) => {
 
 const git = simpleGit()
 
-app.get('/api/version', async (req, res) => {
+app.get('/api/dlsf/version', async (req, res) => {
     try {
         const log = await git.log()
         const currentCommit = log.latest.hash
@@ -308,26 +379,26 @@ app.get('/api/version', async (req, res) => {
     }
 })
 
-app.get('/api/ping', (req, res) => {
+app.get('/api/dlsf/ping', (req, res) => {
     res.send("OK")
+})
+
+app.get("/", (req, res) => {
+    ejs.renderFile("./views/index/index.ejs").then(html => {
+        res.send(html)
+    })
 })
 
 app.use(express.static('public'))
 
 app.listen(port, () => {
-    console.log(`
-██████╗ ██╗     ███████╗    ███████╗██╗   ██╗ ██████╗██╗  ██╗███████╗██████╗ 
-██╔══██╗██║     ██╔════╝    ██╔════╝██║   ██║██╔════╝██║ ██╔╝██╔════╝██╔══██╗
-██║  ██║██║     ███████╗    █████╗  ██║   ██║██║     █████╔╝ █████╗  ██████╔╝
-██║  ██║██║     ╚════██║    ██╔══╝  ██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
-██████╔╝███████╗███████║    ██║     ╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║
-╚═════╝ ╚══════╝╚══════╝    ╚═╝      ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝                                                                       
-`)
-    console.log("!!! 即将启动浏览器，在使用过程中不要关闭本窗口！")
-    console.log("")
-    console.log("===============================================================")
+    logger.info("DLSF 已启动：http://localhost:" + port)
 })
 
-import("open").then((open) => {
-    open.default('http://localhost:' + port)
-})
+if (config.auto_satart_browser == true) {
+    import("open").then((open) => {
+        logger.info("正在启动浏览器...")
+        open.default('http://localhost:' + port)
+    })
+}
+

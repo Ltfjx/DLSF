@@ -18,9 +18,12 @@
   "author": "",
   "license": "GPL",
   "dependencies": {
-    "axios": "^1.7.2",
+    "axios": "^1.7.7",
     "express": "^4.19.2",
     "open": "^10.1.0",
-    "simple-git": "^3.25.0"
+    "simple-git": "^3.25.0",
+    "log4js": "^6.9.1",
+    "ejs": "^3.1.10",
+    "yaml": "^2.5.0"
   }
 }

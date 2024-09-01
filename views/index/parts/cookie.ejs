@@ -1,0 +1,53 @@
+<div class="grid-container" id="grid-container">
+
+  <mdui-card variant="elevated" class="grid-card">
+    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+      <mdui-icon name="login" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+      <div style="font-size: x-large;font-weight: bold;">Login</div>
+    </div>
+    <div style="margin-bottom: 1rem;opacity: 0.75;">登录你的教务系统账号。
+    </div>
+    <mdui-text-field style="margin-bottom: 1rem;" clearable label="学号" value="" id="input-cookie-username"></mdui-text-field>
+    <mdui-text-field style="margin-bottom: 1rem;" clearable label="密码" type="password" value="" id="input-cookie-password"></mdui-text-field>
+    <mdui-button variant="filled" onclick="buttonSaveUser()">保存</mdui-button>
+  </mdui-card>
+
+
+  <mdui-card variant="elevated" class="grid-card">
+    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+      <mdui-icon name="cookie" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+      <div style="font-size: x-large;font-weight: bold;">Cookie</div>
+    </div>
+    <div style="margin-bottom: 1rem;opacity: 0.75;">如果不想使用自动登录功能，可以手动填写 Cookie。
+    </div>
+    <mdui-text-field style="margin-bottom: 1rem;" clearable label="JSESSIONID" type="password" value="" id="input-cookie-JSESSIONID"></mdui-text-field>
+    <mdui-text-field style="margin-bottom: 1rem;" clearable label="array" value="" id="input-cookie-array"></mdui-text-field>
+    <!-- <mdui-text-field style="margin-bottom: 1rem;" clearable label="iPlanetDirectoryPro (非必填)"
+                    value="" id="input-cookie-iPlanetDirectoryPro"></mdui-text-field> -->
+    <mdui-button variant="filled" onclick="buttonSaveCookie()">保存</mdui-button>
+  </mdui-card>
+
+  <mdui-card variant="elevated" class="grid-card">
+    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+      <mdui-icon name="task_alt" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+      <div style="font-size: x-large;font-weight: bold;">Checker</div>
+    </div>
+
+    <div id="checker-status" style="display: flex;align-items: center;margin-bottom: 1rem;opacity: 0.75;">
+      <mdui-badge style="background-color: lightgoldenrodyellow;"></mdui-badge>
+      &nbsp;
+      <div>
+        ...
+      </div>
+    </div>
+
+    <mdui-card variant="filled" style="width: 100%;height: auto;padding: 1rem;">
+      <code id="checker-raw-text" style="background: 0 0;">
+
+      </code>
+    </mdui-card>
+  </mdui-card>
+
+
+
+</div>

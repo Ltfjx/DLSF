@@ -1,0 +1,20 @@
+<mdui-card variant="elevated" class="grid-card" style="margin-bottom: 0.75rem;">
+  <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+    <mdui-icon name="list_alt" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+    <div style="font-size: x-large;font-weight: bold;">Database</div>
+  </div>
+  <div style="margin-bottom: 1rem;opacity: 0.75;">在此处浏览所有课程。</div>
+
+  <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+    <mdui-select id="input-query-term" class="semester-select" variant="outlined" value="item-1" style="width: 10rem;" onchange="loadLessonDatabase(this.value)">
+    </mdui-select>
+    &nbsp;&nbsp;
+    <mdui-button onclick="buttonDatabaseUpdate()">更新数据库</mdui-button>
+  </div>
+  <div id="text-database-time" style="margin-bottom: 0.5rem;opacity: 0.25;">...</div>
+
+  <div id="lesson-database-table" class="mdui-table" style="margin: 0; table-layout: fixed; vertical-align: top;">
+
+  </div>
+
+</mdui-card>

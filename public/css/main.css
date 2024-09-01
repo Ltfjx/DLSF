@@ -29,12 +29,12 @@ code {
 
 @font-face {
   font-family: YUYUKO SCRIPT;
-  src: url('./YUYUKO.otf')
+  src: url('../font/YUYUKO.otf')
 }
 
 @font-face {
   font-family: UbuntuMono;
-  src: url('./UbuntuMono-Regular.ttf')
+  src: url('../font/UbuntuMono-Regular.ttf')
 }
 
 

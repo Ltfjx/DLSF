@@ -13,8 +13,36 @@
   </div>
   <div id="text-database-time" style="margin-bottom: 0.5rem;opacity: 0.25;">...</div>
 
-  <div id="lesson-database-table" class="mdui-table" style="margin: 0; table-layout: fixed; vertical-align: top;">
+  <div style="display: flex;margin-bottom: 0.5rem;align-items: center;gap: 0.5rem;">
+    <mdui-text-field clearable id="lesson-database-search-input" icon="search" label="搜索课程...（支持拼音）"></mdui-text-field>
+    <script>
+      !(function() {
+        const e = document.getElementById("lesson-database-search-input")
+        e.addEventListener("input", mdui.throttle(() => {
+          lessonDatabaseSearch(e.value)
+        }, 100))
+      })()
+    </script>
+    <mdui-button-icon class="lesson-database-prev" icon="keyboard_double_arrow_left" style="margin-left: auto;" onclick="lessonDatabaseFirstPage()"></mdui-button-icon>
+    <mdui-button-icon class="lesson-database-prev" icon="keyboard_arrow_left" onclick="lessonDatabasePrevPage()"></mdui-button-icon>
+    <div class="text-database-page" style="text-wrap: nowrap;">... / ...</div>
+    <mdui-button-icon class="lesson-database-next" icon="keyboard_arrow_right" onclick="lessonDatabaseNextPage()"></mdui-button-icon>
+    <mdui-button-icon class="lesson-database-next" icon="keyboard_double_arrow_right" onclick="lessonDatabaseLastPage()"></mdui-button-icon>
+  </div>
 
+  <div id="lesson-database-table" class="mdui-table" style="margin: 0; table-layout: fixed; vertical-align: top;"></div>
+
+  <div style="display: flex;margin-top: 1rem;align-items: center;gap: 0.5rem;">
+    <mdui-radio-group value="20">
+      <mdui-radio value="20" onclick="lessonDatabaseCountPerPage = 20;databaseShowPage(1)">20 条 / 页</mdui-radio>
+      <mdui-radio value="50" onclick="lessonDatabaseCountPerPage = 50;databaseShowPage(1)">50 条 / 页</mdui-radio>
+      <mdui-radio value="100" onclick="lessonDatabaseCountPerPage = 100;databaseShowPage(1)">100 条 / 页</mdui-radio>
+    </mdui-radio-group>
+    <mdui-button-icon class="lesson-database-prev" icon="keyboard_double_arrow_left" style="margin-left: auto;" onclick="lessonDatabaseFirstPage();lessonDatabaseScrollTop()"></mdui-button-icon>
+    <mdui-button-icon class="lesson-database-prev" icon="keyboard_arrow_left" onclick="lessonDatabasePrevPage();lessonDatabaseScrollTop()"></mdui-button-icon>
+    <div class="text-database-page" style="text-wrap: nowrap;">... / ...</div>
+    <mdui-button-icon class="lesson-database-next" icon="keyboard_arrow_right" onclick="lessonDatabaseNextPage();lessonDatabaseScrollTop()"></mdui-button-icon>
+    <mdui-button-icon class="lesson-database-next" icon="keyboard_double_arrow_right" onclick="lessonDatabaseLastPage();lessonDatabaseScrollTop()"></mdui-button-icon>
   </div>
 
 </mdui-card>

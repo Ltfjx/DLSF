@@ -1,4 +1,56 @@
 var lessonDatabase = {}
+var lessonDatabasePage = 1
+var lessonDatabaseCountPerPage = 20
+var lessonDatabaseSearched = []
+var lessonDatabaseIsSearch = false
+
+console.log(1, pinyinPro.match('语文', 'yw')); // true
+console.log(1, pinyinPro.match('语文', 'yuwen')); // true
+console.log(1, pinyinPro.match('语文', 'ywen')); // true
+console.log(1, pinyinPro.match('语文', 'ywq')); // false
+
+async function lessonDatabaseNextPage() {
+    if (lessonDatabasePage < Math.ceil((lessonDatabaseIsSearch ? lessonDatabaseSearched.length : lessonDatabase.data.length) / lessonDatabaseCountPerPage)) {
+        databaseShowPage(lessonDatabasePage + 1, lessonDatabaseCountPerPage)
+    }
+}
+
+async function lessonDatabasePrevPage() {
+    if (lessonDatabasePage > 1) {
+        databaseShowPage(lessonDatabasePage - 1, lessonDatabaseCountPerPage)
+    }
+}
+
+async function lessonDatabaseFirstPage() {
+    lessonDatabasePage = 1
+    databaseShowPage(lessonDatabasePage, lessonDatabaseCountPerPage)
+}
+
+async function lessonDatabaseLastPage() {
+    const totalPage = Math.ceil((lessonDatabaseIsSearch ? lessonDatabaseSearched.length : lessonDatabase.data.length) / lessonDatabaseCountPerPage)
+    lessonDatabasePage = totalPage
+    databaseShowPage(lessonDatabasePage, lessonDatabaseCountPerPage)
+}
+
+async function lessonDatabaseScrollTop() {
+    document.getElementById("main-content-area").scrollTo({
+        top: 0,
+        behavior: "smooth",
+    })
+}
+
+async function lessonDatabaseSearch(value) {
+    if (value != "") {
+        lessonDatabaseSearched = lessonDatabase.data.filter(item => {
+            return pinyinPro.match(item.kcmc, value) || item.kcbh.includes(value) || pinyinPro.match(item.orgname, value)
+        })
+        lessonDatabaseIsSearch = true
+        databaseShowPage(1, lessonDatabaseCountPerPage)
+    } else {
+        lessonDatabaseIsSearch = false
+        databaseShowPage(1, lessonDatabaseCountPerPage)
+    }
+}
 
 async function updateLessonDatabase(termId) {
     const result = await api("/PublicQuery/getSelectCourseTermList", { termId: termId })
@@ -21,19 +73,40 @@ async function buttonDatabaseUpdate() {
 }
 
 function loadLessonDatabase(termId) {
+
     try {
         lessonDatabase = JSON.parse(localStorage.getItem(`lessonDatabase_${termId}`))
         document.getElementById("text-database-time").innerHTML = `当前所选学期课程数据库更新时间：${new Date(lessonDatabase.timeStamp).toLocaleString()}`
-        databaseShowPage(1, 1000)
+        lessonDatabaseIsSearch = false
+        document.getElementById("lesson-database-search-input").value = ""
     } catch (e) {
         console.log(e)
-        document.getElementById("text-database-time").innerHTML = `暂未获取当前所选学期课程数据`
-        clearLessonDatabaseDisplay()
+        lessonDatabase = {
+            data: [],
+            timeStamp: 0
+        }
+        document.getElementById("text-database-time").innerHTML = `暂未获取当前所选学期课程数据，点击上方的按钮来获取`
     }
+
+    databaseShowPage(1, lessonDatabaseCountPerPage)
+
 }
 
-function clearLessonDatabaseDisplay() {
-    document.getElementById("lesson-database-table").innerHTML = ""
+function showEmptyTable() {
+    document.querySelectorAll(".text-database-page").forEach(element => {
+        element.innerHTML = `0 / 0`
+    })
+    document.querySelectorAll(".lesson-database-prev").forEach(element => {
+        element.style.opacity = "0.5"
+    })
+    document.querySelectorAll(".lesson-database-next").forEach(element => {
+        element.style.opacity = "0.5"
+    })
+    document.getElementById("lesson-database-table").innerHTML = `
+    <div style="text-align: center;margin-top: 1rem;margin-bottom: 1rem;opacity: 0.5;">
+        一切皆已遁入幻想
+    </div>
+  `
 }
 
 function addLessonByLessonCode(lessonCode) {
@@ -41,11 +114,21 @@ function addLessonByLessonCode(lessonCode) {
     buttonTargetAdd()
 }
 
-function databaseShowPage(page, count) {
+function databaseShowPage(page) {
+    if ((lessonDatabaseIsSearch ? lessonDatabaseSearched.length : lessonDatabase.data.length) == 0) {
+        showEmptyTable()
+        return
+    }
+    lessonDatabasePage = page
     document.getElementById("lesson-database-table").innerHTML = ""
-    const start = (page - 1) * count
-    const end = start + count
-    const data = lessonDatabase.data.slice(start, end)
+    const start = (page - 1) * lessonDatabaseCountPerPage
+    const end = start + lessonDatabaseCountPerPage
+    var data = []
+    if (lessonDatabaseIsSearch) {
+        data = lessonDatabaseSearched.slice(start, end)
+    } else {
+        data = lessonDatabase.data.slice(start, end)
+    }
 
     const table = document.createElement("table")
     const thead = document.createElement("thead")
@@ -62,6 +145,12 @@ function databaseShowPage(page, count) {
     th3.innerHTML = "学分"
     th4.innerHTML = "开课学院"
     th5.innerHTML = "操作"
+
+    th1.style["width"] = "40%"
+    th2.style["width"] = "15%"
+    th3.style["width"] = "15%"
+    th4.style["width"] = "20%"
+    th5.style["width"] = "10%"
 
     tr.appendChild(th1)
     tr.appendChild(th2)
@@ -101,4 +190,32 @@ function databaseShowPage(page, count) {
     })
     table.appendChild(tbody)
     document.getElementById("lesson-database-table").appendChild(table)
+
+    const pageTotal = Math.ceil((lessonDatabaseIsSearch ? lessonDatabaseSearched.length : lessonDatabase.data.length) / lessonDatabaseCountPerPage)
+    // 显示页数
+    document.querySelectorAll(".text-database-page").forEach(element => {
+        element.innerHTML = `${lessonDatabasePage} / ${pageTotal}`
+    })
+
+    // 前一页
+    if (lessonDatabasePage == 1) {
+        document.querySelectorAll(".lesson-database-prev").forEach(element => {
+            element.style.opacity = "0.5"
+        })
+    } else {
+        document.querySelectorAll(".lesson-database-prev").forEach(element => {
+            element.style.opacity = "1"
+        })
+    }
+
+    // 后一页
+    if (lessonDatabasePage == pageTotal) {
+        document.querySelectorAll(".lesson-database-next").forEach(element => {
+            element.style.opacity = "0.5"
+        })
+    } else {
+        document.querySelectorAll(".lesson-database-next").forEach(element => {
+            element.style.opacity = "1"
+        })
+    }
 }

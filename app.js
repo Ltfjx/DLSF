@@ -32,7 +32,7 @@ try {
         config = yaml.parse(fs.readFileSync('./config.yml', 'utf8'))
     } else {
         logger.error("配置文件解析失败，请检查配置文件是否存在或格式是否正确或直接删除目录下 config.yaml 文件并重启程序")
-        logger.error(error)
+        console.log(error)
         process.exit(1)
     }
 }
@@ -88,11 +88,13 @@ app.get('/api/studentui/initstudinfo', (req, res) => {
 
                 res.json(j)
             } catch (error) {
+                logger.error("/api/studentui/initstudinfo 解析 JSON 失败：")
                 console.log(error)
                 res.json({ "DLSF_SUCCESS": false })
             }
         })
         .catch(error => {
+            logger.error("/api/studentui/initstudinfo 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
         })
@@ -118,11 +120,13 @@ app.get('/api/selectcourse/initACC', (req, res) => {
 
                 res.json(j)
             } catch (error) {
+                logger.error("/api/selectcourse/initACC 解析 JSON 失败：")
                 console.log(error)
                 res.json({ "DLSF_SUCCESS": false })
             }
         })
         .catch(error => {
+            logger.error("/api/selectcourse/initACC 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
         })
@@ -147,11 +151,14 @@ app.post('/api/selectcourse/scSubmit', (req, res) => {
 
                 res.json(j)
             } catch (error) {
+                logger.error("/api/selectcourse/scSubmit 解析 JSON 失败：")
                 console.log(error)
                 res.json({ "DLSF_SUCCESS": false })
+
             }
         })
         .catch(error => {
+            logger.error("/api/selectcourse/scSubmit 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
         })
@@ -176,11 +183,13 @@ app.get('/api/common/semesterSS', (req, res) => {
 
                 res.json(j)
             } catch (error) {
+                logger.error("/api/common/semesterSS 解析 JSON 失败：")
                 console.log(error)
                 res.json({ "DLSF_SUCCESS": false })
             }
         })
         .catch(error => {
+            logger.error("/api/common/semesterSS 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
         })
@@ -205,11 +214,13 @@ app.get('/api/StudentCourseTable/getData', (req, res) => {
 
                 res.json(j)
             } catch (error) {
+                logger.error("/api/StudentCourseTable/getData 解析 JSON 失败：")
                 console.log(error)
                 res.json({ "DLSF_SUCCESS": false })
             }
         })
         .catch(error => {
+            logger.error("/api/StudentCourseTable/getData 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
         })
@@ -234,11 +245,13 @@ app.get('/api/PublicQuery/getSelectCourseTermList', (req, res) => {
 
                 res.json(j)
             } catch (error) {
+                logger.error("/api/PublicQuery/getSelectCourseTermList 解析 JSON 失败：")
                 console.log(error)
                 res.json({ "DLSF_SUCCESS": false })
             }
         })
         .catch(error => {
+            logger.error("/api/PublicQuery/getSelectCourseTermList 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
         })
@@ -247,6 +260,9 @@ app.get('/api/PublicQuery/getSelectCourseTermList', (req, res) => {
 app.get('/api/dlsf/loginGetToken', (req, res) => {
     const username = req.query.username
     const unsalted_password = req.query.password
+
+
+
     fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin")
         .then(response => {
             const cookie = response.headers.getSetCookie()
@@ -259,91 +275,95 @@ app.get('/api/dlsf/loginGetToken', (req, res) => {
                 const _eventId = "submit"
                 const rmShown = "1"
 
-                try {
-                    const route = cookie[0].match(/route=(.*?);/)[1]
-                    const JSESSIONID_AUTH = cookie[1].match(/JSESSIONID_AUTH=(.*?);/)[1]
+
+                const route = cookie[0].match(/route=(.*?);/)[1]
+                const JSESSIONID_AUTH = cookie[1].match(/JSESSIONID_AUTH=(.*?);/)[1]
 
 
-                    let options = {
+                let options = {
+                    "headers": {
+                        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        "accept-language": "zh-CN,zh;q=0.9,ja;q=0.8",
+                        "cache-control": "max-age=0",
+                        "content-type": "application/x-www-form-urlencoded",
+                        "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
+                        "sec-ch-ua-mobile": "?0",
+                        "sec-ch-ua-platform": "\"Windows\"",
+                        "sec-fetch-dest": "document",
+                        "sec-fetch-mode": "navigate",
+                        "sec-fetch-site": "same-origin",
+                        "sec-fetch-user": "?1",
+                        "upgrade-insecure-requests": "1",
+                        "cookie": `route=${encodeURIComponent(route)}; org.springframework.web.servlet.i18n.CookieLocaleResolver.LOCALE=zh_CN; JSESSIONID_AUTH=${encodeURIComponent(JSESSIONID_AUTH)}`,
+                        "Referer": "https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin",
+                        "Referrer-Policy": "strict-origin-when-cross-origin"
+                    },
+                    "body": `username=${encodeURIComponent(username)}`
+                        + `&password=${encodeURIComponent(password)}`
+                        + `&lt=${encodeURIComponent(lt)}`
+                        + `&dllt=${encodeURIComponent(dllt)}`
+                        + `&execution=${encodeURIComponent(execution)}`
+                        + `&_eventId=${encodeURIComponent(_eventId)}`
+                        + `&rmShown=${encodeURIComponent(rmShown)}`,
+
+                    "method": "POST",
+                    "redirect": 'manual'
+                }
+
+
+                fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin", options).then(response => {
+
+                    let url
+                    try {
+                        url = response.headers.get('location').replace("http://", "https://")
+                    } catch (error) {
+                        console.log(error)
+                        res.json({ "DLSF_SUCCESS": false })
+                        return
+                    }
+
+                    fetch(url, {
                         "headers": {
                             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            "accept-language": "zh-CN,zh;q=0.9,ja;q=0.8",
-                            "cache-control": "max-age=0",
-                            "content-type": "application/x-www-form-urlencoded",
+                            "accept-language": "zh-CN,zh;q=0.9",
+                            "cache-control": "no-cache",
+                            "pragma": "no-cache",
                             "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
                             "sec-ch-ua-mobile": "?0",
                             "sec-ch-ua-platform": "\"Windows\"",
                             "sec-fetch-dest": "document",
                             "sec-fetch-mode": "navigate",
-                            "sec-fetch-site": "same-origin",
+                            "sec-fetch-site": "none",
                             "sec-fetch-user": "?1",
-                            "upgrade-insecure-requests": "1",
-                            "cookie": `route=${encodeURIComponent(route)}; org.springframework.web.servlet.i18n.CookieLocaleResolver.LOCALE=zh_CN; JSESSIONID_AUTH=${encodeURIComponent(JSESSIONID_AUTH)}`,
-                            "Referer": "https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin",
-                            "Referrer-Policy": "strict-origin-when-cross-origin"
+                            "upgrade-insecure-requests": "1"
                         },
-                        "body": `username=${encodeURIComponent(username)}`
-                            + `&password=${encodeURIComponent(password)}`
-                            + `&lt=${encodeURIComponent(lt)}`
-                            + `&dllt=${encodeURIComponent(dllt)}`
-                            + `&execution=${encodeURIComponent(execution)}`
-                            + `&_eventId=${encodeURIComponent(_eventId)}`
-                            + `&rmShown=${encodeURIComponent(rmShown)}`,
-
-                        "method": "POST",
+                        "referrerPolicy": "strict-origin-when-cross-origin",
+                        "body": null,
+                        "method": "GET",
                         "redirect": 'manual'
-                    }
-
-
-                    fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin", options).then(response => {
-
-                        let url
-                        try {
-                            url = response.headers.get('location').replace("http://", "https://")
-                        } catch (error) {
-                            console.log(error)
-                            res.json({ "DLSF_SUCCESS": false })
-                            return
-                        }
-
-                        fetch(url, {
-                            "headers": {
-                                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                                "accept-language": "zh-CN,zh;q=0.9",
-                                "cache-control": "no-cache",
-                                "pragma": "no-cache",
-                                "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
-                                "sec-ch-ua-mobile": "?0",
-                                "sec-ch-ua-platform": "\"Windows\"",
-                                "sec-fetch-dest": "document",
-                                "sec-fetch-mode": "navigate",
-                                "sec-fetch-site": "none",
-                                "sec-fetch-user": "?1",
-                                "upgrade-insecure-requests": "1"
-                            },
-                            "referrerPolicy": "strict-origin-when-cross-origin",
-                            "body": null,
-                            "method": "GET",
-                            "redirect": 'manual'
-                        }).then(response => {
-                            const scookie = response.headers.get('set-cookie')
-                            const JSESSIONID = scookie.match(/JSESSIONID=(.*?);/)[1]
-                            const array = scookie.match(/array=(.*?);/)[1]
-                            res.json({ "DLSF_SUCCESS": true, "JSESSIONID": JSESSIONID, "array": array })
-                        })
-
-
+                    }).then(response => {
+                        const scookie = response.headers.get('set-cookie')
+                        const JSESSIONID = scookie.match(/JSESSIONID=(.*?);/)[1]
+                        const array = scookie.match(/array=(.*?);/)[1]
+                        res.json({ "DLSF_SUCCESS": true, "JSESSIONID": JSESSIONID, "array": array })
+                    }).catch(error => {
+                        res.json({ "DLSF_SUCCESS": false })
+                        logger.error("CAS 自动登录 3/3 步骤失败：")
+                        console.log(error)
                     })
 
-                } catch (error) {
-                    console.log(error)
+
+                }).catch(error => {
                     res.json({ "DLSF_SUCCESS": false })
-                    return
-                }
+                    logger.error("CAS 自动登录 2/3 步骤失败：")
+                    console.log(error)
+                })
 
             })
         })
         .catch(error => {
+            res.json({ "DLSF_SUCCESS": false })
+            logger.error("CAS 自动登录 1/3 步骤失败：")
             console.log(error)
         })
 
@@ -357,7 +377,7 @@ app.get('/api/dlsf/version', async (req, res) => {
         const currentCommit = log.latest.hash
         res.json({ "currentVersion": currentCommit })
     } catch (err) {
-        console.error(err)
+        logger.warn("当前环境未安装 Git，自动更新检查功能将不会生效")
         res.status(500).json({ "DLSF_SUCCESS": false })
     }
 })

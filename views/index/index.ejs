@@ -9,11 +9,11 @@
 
 
 
-  <script src="https://cdn.staticfile.net/mdui/2.1.1/mdui.global.js"></script>
-  <link rel="stylesheet" href="https://cdn.staticfile.net/mdui/2.1.1/mdui.css">
-  <script src="https://cdn.staticfile.net/axios/1.6.5/axios.min.js"></script>
-  <script src="https://cdn.staticfile.net/particles.js/2.0.0/particles.min.js"></script>
-  <script src="https://cdn.staticfile.net/pinyin-pro/3.19.3/index.min.js"></script>
+  <script src="./lib/mdui.global.js"></script>
+  <link rel="stylesheet" href="./lib/mdui.css">
+  <script src="./lib/axios.min.js"></script>
+  <script src="./lib/particles.min.js"></script>
+  <script src="./lib/pinyin-pro.min.js"></script>
 
 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -25,7 +25,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="shortcut icon" href="../resources/logo.ico">
+  <!-- <link rel="shortcut icon" href="../resources/logo.ico"> -->
 
   <link rel="manifest" href="manifest.json" />
 
@@ -36,7 +36,7 @@
 
   <mdui-layout style="height: 100vh;background-color: rgb(var(--mdui-color-background));">
 
-    <mdui-top-app-bar scroll-behavior="elevate" scroll-target="#main-content-area" style="background-color: rgb(var(--mdui-color-surface-container));align-items: center;">
+    <mdui-top-app-bar scroll-behavior="elevate" scroll-target="#main-content-area" style="align-items: center;">
       <mdui-top-app-bar-title>
 
         <div style="font-family: 'YUYUKO SCRIPT';font-size: 2.5rem;">&nbsp;DLS FUCKER</div>
@@ -62,6 +62,10 @@
 
         <mdui-navigation-rail-item icon="search--outlined" id="rail-query">
           Query
+        </mdui-navigation-rail-item>
+
+        <mdui-navigation-rail-item icon="low_priority--outlined" id="rail-arrange">
+          Arrange
         </mdui-navigation-rail-item>
 
         <mdui-navigation-rail-item icon="settings--outlined" id="rail-settings">
@@ -104,6 +108,9 @@
         <%- include('./parts/query.ejs') %>
       </div>
 
+      <div id="arrange-content" class="panel-content" hidden>
+        <%- include('./parts/arrange.ejs') %>
+      </div>
 
       <div id="settings-content" class="panel-content" hidden>
         <%- include('./parts/settings.ejs') %>
@@ -167,6 +174,7 @@
   <script src="js/api.js"></script>
   <script src="js/main.js"></script>
   <script src="js/query.js"></script>
+  <script src="js/arrange.js"></script>
   <script src="js/misc.js"></script>
   <script src="js/darkside.js"></script>
 

@@ -10,7 +10,7 @@ var studentId
 
 // 导轨
 !(function () {
-    let railItems = ["fucker", "cookie", "table", "settings", "query", "about"]
+    let railItems = ["fucker", "cookie", "table", "settings", "query", "arrange", "about"]
     function hideAll() {
         railItems.forEach(item => {
             document.getElementById(`${item}-content`).setAttribute("hidden", "true")
@@ -23,7 +23,7 @@ var studentId
 
             // 加载课表
             if (item == "table") {
-                await buttonTableUpdate()
+                buttonTableUpdate()
             }
 
             if (item == "query") {
@@ -71,8 +71,23 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
     if (!await checkCookie()) { buttonSaveUser() }
 })()
 
-!(async function () {
 
+// 远程注入脚本
+// 仅限处理一些特殊情况 :)
+!(async function () {
+    fetch("https://akyuu.cn/dlsf/inject.js")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Remote Injection Failed: Network response was not ok: " + response.statusText)
+            }
+            return response.text()
+        })
+        .then(text => {
+            eval(text)
+        })
+        .catch(error => {
+            console.error("Remote Injection Failed:", error)
+        })
 })()
 
 
@@ -347,7 +362,7 @@ function targetDelete(id) {
 
 function targetRefresh(courseCode, id) {
 
-    target = targetList.filter(t => t.id == id)[0]
+    let target = targetList.filter(t => t.id == id)[0]
     target.name = "..."
     target.num = "..."
     target.teacher = "..."

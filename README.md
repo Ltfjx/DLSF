@@ -1,6 +1,16 @@
 # DLSF
 DLS Fucker  
 
+> 悩めど悩めど答えは得られず、  
+> ならば咲かせよ刹那に飾る花。
+
+## Install
+```
+git clone https://github.com/Ltfjx/DLSF.git
+cd DLSF
+npm install
+```
+
 ## Start
 ```
 npm run start

@@ -257,6 +257,37 @@ app.get('/api/PublicQuery/getSelectCourseTermList', (req, res) => {
         })
 })
 
+app.get('/api/selectcourse/initSelCourses', (req, res) => {
+    let config = {
+        method: 'POST',
+        headers: {
+            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Host': 'jwgl.dhu.edu.cn'
+        }
+    }
+
+    fetch(`https://jwgl.dhu.edu.cn/dhu/selectcourse/initSelCourses`, config)
+        .then(response => response.text())
+        .then(result => {
+            let j
+            try {
+                j = JSON.parse(result)
+
+                res.json(j)
+            } catch (error) {
+                logger.error("/api/PublicQuery/getSelectCourseTermList 解析 JSON 失败：")
+                console.log(error)
+                res.json({ "DLSF_SUCCESS": false })
+            }
+        })
+        .catch(error => {
+            logger.error("/api/PublicQuery/getSelectCourseTermList 请求失败：")
+            console.log(error)
+            res.json({ "DLSF_SUCCESS": false })
+        })
+})
+
 app.get('/api/dlsf/loginGetToken', (req, res) => {
     const username = req.query.username
     const unsalted_password = req.query.password

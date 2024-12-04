@@ -1,0 +1,280 @@
+<div style="display: flex;gap: 1rem;">
+  <mdui-card variant="elevated" class="grid-card" style="flex: 5;">
+
+    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+      <mdui-icon name="fact_check" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+      <div style="font-size: x-large;font-weight: bold;">Select</div>
+    </div>
+    <div style="margin-bottom: 1rem;opacity: 0.75;">选取你的课程。</div>
+
+
+    <mdui-button style="margin-bottom: 1rem;margin-right: 0.5rem;" variant="filled" onclick="arrangeSendToFucker()">添加至 Fucker
+        <mdui-icon slot="icon" name="send"></mdui-icon>
+    </mdui-button>
+
+    <mdui-button style="margin-bottom: 1rem;" variant="outlined" onclick="arrangeClearAllSelect()">清空已选课程
+        <mdui-icon slot="icon" name="clear"></mdui-icon>
+    </mdui-button>
+
+    <mdui-card style="width: 100%;padding: 1rem;">
+      <div id="arrange-select-nothing" style="text-align: center;opacity: 0.5;">前往 Query 选项卡将课程添加至此处来开始排课。</div>
+
+
+      <mdui-list>
+        <mdui-collapse accordion id="arrange-list">
+
+        </mdui-collapse>
+      </mdui-list>
+
+
+    </mdui-card>
+
+  </mdui-card>
+
+
+  <mdui-card variant="elevated" class="grid-card" style="flex: 8;">
+
+    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+      <mdui-icon name="dashboard" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+      <div style="font-size: x-large;font-weight: bold;">Preview</div>
+    </div>
+    <div style="margin-bottom: 1rem;opacity: 0.75;">预览你的课表。</div>
+
+    <!-- <mdui-select id="arrange-term-select" style="margin-bottom: 0.5rem;" class="semester-select" variant="outlined" value="item-1" style="width: 10rem;">
+    </mdui-select> -->
+
+    <div style="opacity: 0.75;margin-bottom: 0.5rem;display: flex;align-items: center;">
+      <mdui-icon name="date_range" style="margin-right: 0.5rem;"></mdui-icon>
+
+      <mdui-button-icon class="arrange-week button-icon-selected">
+        <div style="font-size: medium;">1</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">2</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">3</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">4</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">5</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">6</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">7</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">8</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">9</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">10</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">11</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">12</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">13</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">14</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">15</div>
+      </mdui-button-icon>
+
+      <mdui-button-icon class="arrange-week">
+        <div style="font-size: medium;">16</div>
+      </mdui-button-icon>
+    </div>
+
+
+
+    <table class="mdui-table" style="margin: 0; table-layout: fixed; height: 10rem;vertical-align: top;">
+      <thead>
+        <tr>
+          <th style="width: 2rem;"></th>
+          <th>星期一</th>
+          <th>星期二</th>
+          <th>星期三</th>
+          <th>星期四</th>
+          <th>星期五</th>
+          <th>星期六</th>
+          <th>星期日</th>
+        </tr>
+      </thead>
+      <tbody id="arrange-preview-table">
+
+        <tr>
+          <td style="vertical-align: top;">1</td>
+          <td rowspan="6" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">设计基础(1)</div>
+            <div style="opacity: 0.75;">9-16周 · 松1242</div>
+            <div style="opacity: 0.35;">杨钟亮</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">工程力学</div>
+            <div style="opacity: 0.75;">1-16周 · 松1242</div>
+            <div style="opacity: 0.35;">韩志林</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">2</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">3</td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">电工电子技术C</div>
+            <div style="opacity: 0.75;">1-16周 · 松1121</div>
+            <div style="opacity: 0.35;">白慧</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">模型制作基础</div>
+            <div style="opacity: 0.75;">1-8周 · 4号学院楼6063</div>
+            <div style="opacity: 0.35;">王思萍</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">工程力学</div>
+            <div style="opacity: 0.75;">9-16周 · 松1242</div>
+            <div style="opacity: 0.35;">韩志林</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">4</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">5</td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">模型制作基础</div>
+            <div style="opacity: 0.75;">1-8周 · 4号学院楼6063</div>
+            <div style="opacity: 0.35;">王思萍</div>
+            <hr style="opacity: 0.5;">
+            <div style="font-size: larger;font-weight: bold;">电工电子技术实验C</div>
+            <div style="opacity: 0.75;">9-16周 · 2号学院楼2226</div>
+            <div style="opacity: 0.35;">阳云龙</div>
+          </td>
+          <td rowspan="4" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">工程训练</div>
+            <div style="opacity: 0.75;">1-16周 · 工程训练中心329</div>
+            <div style="opacity: 0.35;">原一高</div>
+          </td>
+          <td rowspan="4" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">有限元基础与软件应用</div>
+            <div style="opacity: 0.75;">9-16周 · 4号学院楼6045</div>
+            <div style="opacity: 0.35;">陈慧敏</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">6</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">7</td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">大学物理基础</div>
+            <div style="opacity: 0.75;">1-16周 · 松1242</div>
+            <div style="opacity: 0.35;">杨沁玉</div>
+            <hr style="opacity: 0.5;">
+            <div style="font-size: larger;font-weight: bold;">线性代数B</div>
+            <div style="opacity: 0.75;">1-16周 · 松1221</div>
+            <div style="opacity: 0.35;">华嘉乐</div>
+          </td>
+          <td rowspan="3" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">羽毛球3（男）</div>
+            <div style="opacity: 0.75;">1-16周 · 松江校区体育馆</div>
+            <div style="opacity: 0.35;">冯巍</div>
+            <hr style="opacity: 0.5;">
+            <div style="font-size: larger;font-weight: bold;">模型制作基础</div>
+            <div style="opacity: 0.75;">1-8周 · 4号学院楼6063</div>
+            <div style="opacity: 0.35;">王思萍</div>
+          </td>
+          <td rowspan="3" style="vertical-align: top;"></td>
+          <td rowspan="3" style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">8</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">9</td>
+          <td style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">线性代数B</div>
+            <div style="opacity: 0.75;">1-16周 · 松1221</div>
+            <div style="opacity: 0.35;">华嘉乐</div>
+          </td>
+          <td style="vertical-align: top;"></td>
+          <td style="vertical-align: top;"></td>
+          <td style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">10</td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">信息检索与资源利用</div>
+            <div style="opacity: 0.75;">1-8周 · 图文9号机房</div>
+            <div style="opacity: 0.35;">尹雪</div>
+          </td>
+          <td rowspan="4" style="vertical-align: top; background-color: rgba(255, 255, 255, 0.125);">
+            <div style="font-size: larger;font-weight: bold;">matlab</div>
+            <div style="opacity: 0.75;">1-8周 · 图文5号机房</div>
+            <div style="opacity: 0.35;">盛晓伟</div>
+          </td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">11</td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">12</td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+          <td rowspan="2" style="vertical-align: top;"></td>
+        </tr>
+        <tr>
+          <td style="vertical-align: top;">13</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+  </mdui-card>
+</div>

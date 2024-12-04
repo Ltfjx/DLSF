@@ -4,11 +4,6 @@ var lessonDatabaseCountPerPage = 20
 var lessonDatabaseSearched = []
 var lessonDatabaseIsSearch = false
 
-console.log(1, pinyinPro.match('语文', 'yw')); // true
-console.log(1, pinyinPro.match('语文', 'yuwen')); // true
-console.log(1, pinyinPro.match('语文', 'ywen')); // true
-console.log(1, pinyinPro.match('语文', 'ywq')); // false
-
 async function lessonDatabaseNextPage() {
     if (lessonDatabasePage < Math.ceil((lessonDatabaseIsSearch ? lessonDatabaseSearched.length : lessonDatabase.data.length) / lessonDatabaseCountPerPage)) {
         databaseShowPage(lessonDatabasePage + 1, lessonDatabaseCountPerPage)
@@ -177,7 +172,12 @@ function databaseShowPage(page) {
         td3.innerHTML = item.xf
         td4.innerHTML = item.orgname
         td5.innerHTML = `
-        <mdui-button-icon icon="add" style="margin:0" onclick="addLessonByLessonCode('${item.kcbh}')"></mdui-button-icon>
+        <mdui-tooltip content="将课程添加到 Fucker 选项卡">
+            <mdui-button-icon icon="add" style="margin: 0;margin-left: 0.5rem" onclick="addLessonByLessonCode('${item.kcbh}')"></mdui-button-icon>
+        </mdui-tooltip>
+        <mdui-tooltip content="将课程添加到 Arrange 选项卡">
+            <mdui-button-icon icon="low_priority" style="margin: 0" onclick="addLessonToArrange('${item.kcbh}')"></mdui-button-icon>
+        </mdui-tooltip>
         `
 
         tr.appendChild(td1)

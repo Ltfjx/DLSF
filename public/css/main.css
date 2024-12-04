@@ -88,3 +88,7 @@ body {
   background-color: #555;
   /* 滚动条手柄鼠标悬停时的颜色 */
 }
+
+.button-icon-selected {
+  background-color: rgba(var(--mdui-color-primary-container));
+}

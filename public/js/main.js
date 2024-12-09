@@ -26,6 +26,10 @@ var studentId
                 buttonTableUpdate()
             }
 
+            if (item == "arrange") {
+                arrangeSetWeek(1)
+            }
+
             if (item == "query") {
                 loadLessonDatabase(document.getElementById("input-query-term").value)
             }

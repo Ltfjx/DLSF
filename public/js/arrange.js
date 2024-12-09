@@ -145,9 +145,9 @@ function arrangeClearAllSelect() {
     localStorage.setItem("arrangeLessonList", JSON.stringify(arrangeLessonList))
 }
 
-function arrangeSetWeek(week) {
+function arrangeSetWeek(week, element) {
     arrangeSelectedWeek = week
-    renderPreviewTable()
+    renderPreviewTable(element)
 }
 
 document.querySelectorAll(".arrange-week").forEach(element => {
@@ -160,7 +160,8 @@ document.querySelectorAll(".arrange-week").forEach(element => {
                 element.classList.remove("button-icon-selected")
             }
         })
-        arrangeSetWeek(week)
+        element.setAttribute("loading", "true")
+        arrangeSetWeek(week, element)
     })
 })
 
@@ -243,10 +244,11 @@ function updateArrangeList() {
     })
 }
 
-function renderPreviewTable() {
+function renderPreviewTable(element) {
     api("/selectcourse/initSelCourses").then(result => {
         arrangePreviewTable = []
 
+        // type 0: 已录取课程
         result.enrollCourses.forEach(lesson => {
 
             function getArray(start, end) {
@@ -259,39 +261,95 @@ function renderPreviewTable() {
                 return _
             }
 
-            const selectCode = lesson.jxbdm
-            const teacher = lesson.teachName
-            const location = lesson.classRoom1
-            const name = lesson.courseName
+            try {
+                const selectCode = lesson.jxbdm
+                const teacher = lesson.teachName
+                const location = lesson.classRoom1
+                const name = lesson.courseName
 
-            const weekStart = lesson.useWeek1.replace(/周/g, "").split("-")[0]
-            const weekEnd = lesson.useWeek1.replace(/周/g, "").split("-")[1]
-            let week = getArray(weekStart, weekEnd)
+                const weekStart = lesson.useWeek1.replace(/周/g, "").split("-")[0]
+                const weekEnd = lesson.useWeek1.replace(/周/g, "").split("-")[1]
+                let week = getArray(weekStart, weekEnd)
 
-            const timeWeekDay = lesson.classTime1.split(".")[0]
-            let timeTemp = lesson.classTime1.replace(/节/g, "").split(".")
-            timeTemp.shift()
-            const time = timeTemp.map(item => Number(item));
+                const timeWeekDay = lesson.classTime1.split(".")[0]
+                let timeTemp = lesson.classTime1.replace(/节/g, "").split(".")
+                timeTemp.shift()
+                const time = timeTemp.map(item => Number(item));
 
 
-            arrangePreviewTable.push({
-                selectCode: selectCode,
-                name: name,
-                teacher: teacher,
-                week: week,
-                weekString: lesson.useWeek1,
-                timeWeekDay: timeWeekDay,
-                time: time,
-                location: location
-            })
+                arrangePreviewTable.push({
+                    type: 0,
+                    selectCode: selectCode,
+                    name: name,
+                    teacher: teacher,
+                    week: week,
+                    weekString: lesson.useWeek1,
+                    timeWeekDay: timeWeekDay,
+                    time: time,
+                    location: location
+                })
+            } catch (e) {
+                console.error(e)
+                console.error(`课程 ${lesson.courseName} 解析失败，跳过`)
+                console.error(lesson)
+            }
 
         })
 
+        // type 1: 已选课程
+        result.selectedCourses.forEach(lesson => {
+
+            function getArray(start, end) {
+                start = Number(start)
+                end = Number(end)
+                let _ = []
+                for (let i = start; i <= end; i++) {
+                    _.push(Number(i))
+                }
+                return _
+            }
+
+            try {
+                const selectCode = lesson.jxbdm
+                const teacher = lesson.teachName
+                const location = lesson.classRoom1
+                const name = lesson.courseName
+
+                const weekStart = lesson.useWeek1.replace(/周/g, "").split("-")[0]
+                const weekEnd = lesson.useWeek1.replace(/周/g, "").split("-")[1]
+                let week = getArray(weekStart, weekEnd)
+
+                const timeWeekDay = lesson.classTime1.split(".")[0]
+                let timeTemp = lesson.classTime1.replace(/节/g, "").split(".")
+                timeTemp.shift()
+                const time = timeTemp.map(item => Number(item));
+
+                arrangePreviewTable.push({
+                    type: 1,
+                    selectCode: selectCode,
+                    name: name,
+                    teacher: teacher,
+                    week: week,
+                    weekString: lesson.useWeek1,
+                    timeWeekDay: timeWeekDay,
+                    time: time,
+                    location: location
+                })
+            } catch (e) {
+                console.warn(e)
+                console.warn(`课程 ${lesson.courseName} 解析失败，跳过`)
+                console.warn(lesson)
+            }
+
+        })
+
+        // type 2: arrangeLessonList 课程
         arrangeLessonList.forEach(item => {
             if (item.selected) {
                 item.lessons.forEach(lesson => {
                     if (lesson.selected) {
                         arrangePreviewTable.push({
+                            type: 2,
                             selectCode: lesson.selectCode.toString(),
                             name: item.name,
                             teacher: lesson.teacher,
@@ -311,8 +369,6 @@ function renderPreviewTable() {
 
         previewTable.innerHTML = ""
 
-
-
         let tdRowToSkipMap = {
             "周一": 0,
             "周二": 0,
@@ -322,6 +378,13 @@ function renderPreviewTable() {
             "周六": 0,
             "周日": 0
         }
+
+        const bgColorMap = {
+            "0": "rgba(255, 255, 255, 0.08)", // 已录取课程
+            "1": "rgba(63, 255, 63, 0.08)", // 已选课程
+            "2": "rgba(63, 63, 255, 0.08)" // arrangeLessonList 课程
+        }
+
         for (let i = 1; i <= 13; i++) {
             const tr = document.createElement("tr")
             const td0 = document.createElement("td")
@@ -349,9 +412,11 @@ function renderPreviewTable() {
                         if (lesson.time[0] == i) {
                             const tdElement = day2TdMap[lesson.timeWeekDay]
                             tdElement.rowSpan = lesson.time.length
-                            tdRowToSkipMap[lesson.timeWeekDay] = 0 - (lesson.time.length - 1)
+                            if (tdRowToSkipMap[lesson.timeWeekDay] == 0) {
+                                tdRowToSkipMap[lesson.timeWeekDay] = 0 - (lesson.time.length - 1)
+                            }
                             tdElement.style["vertical-align"] = "top"
-                            tdElement.style["background-color"] = "rgba(255, 255, 255, 0.125)"
+                            tdElement.style["background-color"] = bgColorMap[lesson.type]
                             tdElement.innerHTML = `
                             <div style="font-size: larger;font-weight: bold;">${lesson.name}</div>
                             <div style="opacity: 0.75;">${lesson.weekString} · ${lesson.location}</div>
@@ -438,6 +503,11 @@ function renderPreviewTable() {
         }
 
         updateConflictHightlight()
+
+        if (element) {
+            // 移除loading 属性
+            element.removeAttribute("loading")
+        }
 
     })
 }

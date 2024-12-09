@@ -27,7 +27,7 @@ var studentId
             }
 
             if (item == "arrange") {
-                arrangeSetWeek(1)
+                arrangeSetWeek(arrangeSelectedWeek)
             }
 
             if (item == "query") {

@@ -239,6 +239,7 @@ function switchMain() {
         document.getElementById("switch-main-status").children[2].innerHTML = `脚本运行中 (${activeWorker}/${targetList.length})`
         document.getElementById("slider-main-speed").disabled = true
         document.getElementById("switch-checkiffull").disabled = true
+        document.getElementById("switch-lowspeed").disabled = true
     } else {
         console.log("Stop!")
         workers.forEach(worker => {
@@ -253,6 +254,7 @@ function switchMain() {
         document.getElementById("switch-main-status").children[2].innerHTML = "脚本已停止"
         document.getElementById("slider-main-speed").disabled = false
         document.getElementById("switch-checkiffull").disabled = false
+        document.getElementById("switch-lowspeed").disabled = false
     }
 }
 
@@ -427,7 +429,20 @@ function alertSwitchCheckIfFull(s) {
     }
 }
 
-
+function switchLowSpeed(s) {
+    let e = document.getElementById("slider-main-speed")
+    if (s.checked) {
+        e.setAttribute("max", "60")
+        e.setAttribute("value", "10")
+        e.setAttribute("step", "5")
+        e.setAttribute("min", "5")
+    } else {
+        e.setAttribute("max", "15")
+        e.setAttribute("value", "3")
+        e.setAttribute("step", "1")
+        e.setAttribute("min", "1")
+    }
+}
 
 function buttonTableUpdate() {
     let id = document.getElementById("input-table-stdudent-id").value || studentId

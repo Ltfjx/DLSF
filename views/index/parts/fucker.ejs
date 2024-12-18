@@ -43,20 +43,29 @@
     </div>
     <div style="margin-bottom: 1rem;opacity: 0.75;">在此处修改脚本配置。</div>
 
-    <div style="display: flex;margin-bottom: 1rem;align-items: center;">
+    <div style="display: flex;align-items: center;">
       <div style="white-space: nowrap;">间隔调节</div>
-      <mdui-slider id="slider-main-speed" tickmarks value="3" step="1" min="1" max="10" oninput="interval=this.value*1000"></mdui-slider>
+      <mdui-slider id="slider-main-speed" tickmarks value="3" step="1" min="1" max="15" oninput="interval=this.value*1000"></mdui-slider>
       <script>
         const slider = document.getElementById("slider-main-speed")
         slider.labelFormatter = (value) => `${value} 秒`
       </script>
     </div>
+    <div style="opacity: 0.5;">选课执行的间隔时间。</div>
 
-    <div style="display: flex;align-items: center;opacity: 0.75;">
+    <div style="display: flex;align-items: center;margin-top: 1rem;">
       <mdui-switch id="switch-checkiffull" onchange="alertSwitchCheckIfFull(this)"></mdui-switch>
       &nbsp;&nbsp;&nbsp;
       <div>不校验人数</div>
     </div>
+    <div style="opacity: 0.5;">在选课之前不校验人数，适用于选课高峰期人数无法快速获取的情况。</div>
+
+    <div style="display: flex;align-items: center;margin-top: 1rem;">
+      <mdui-switch id="switch-lowspeed" onchange="switchLowSpeed(this)"></mdui-switch>
+      &nbsp;&nbsp;&nbsp;
+      <div>低速模式</div>
+    </div>
+    <div style="opacity: 0.5;">允许使用更长的间隔进行抢课，适用于选课高峰期网络状况不佳的情况。</div>
 
   </mdui-card>
 

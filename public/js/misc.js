@@ -27,13 +27,21 @@ if (localStorage.getItem("DLSF_checkupdate") == "true") {
 
 
 // 心跳包
-!(function () {
-    setInterval(() => {
-        apiPing()
-            .then(() => { document.getElementById("dialog-backend-disconnected").open = false })
-            .catch(() => { document.getElementById("dialog-backend-disconnected").open = true })
-    }, 3000)
-})()
+
+ws = new WebSocket(`ws://${window.location.host.split(":")[0]}:${parseInt(window.location.host.split(":")[1]) + 1}`)
+
+ws.onopen = () => {
+    console.log('连接到 WebSocket 服务器')
+    document.getElementById("dialog-backend-disconnected").open = false
+}
+
+ws.onclose = () => {
+    console.log('WebSocket 连接关闭，尝试重新连接')
+    document.getElementById("dialog-backend-disconnected").open = true
+    setTimeout(() => {
+        ws = new WebSocket(`ws://${window.location.host.split(":")[0]}:${window.location.host.split(":")[1] + 1}`)
+    }, 1000)
+}
 
 
 // 通用消息条

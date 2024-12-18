@@ -5,6 +5,7 @@ const ejs = require('ejs')
 const log4js = require('log4js')
 const yaml = require('yaml')
 const fs = require('fs')
+const WebSocket = require('ws')
 
 console.log(`
 ██████╗ ██╗     ███████╗    ███████╗██╗   ██╗ ██████╗██╗  ██╗███████╗██████╗ 
@@ -61,12 +62,13 @@ if (safeMode) {
 
 app.use((req, res, next) => {
     if (!req.url.startsWith("/api")) {
-        logger.trace("STATIC" + " " + req.url)
+        logger.debug("STATIC" + " " + req.url)
     } else if (!req.url.endsWith("/ping")) {
-        logger.debug("API " + req.method + " " + req.url)
+        logger.info("API " + req.method + " " + req.url.split("&j=")[0]) // 去除 token 参数
     }
     next()
 })
+
 
 app.get('/api/studentui/initstudinfo', (req, res) => {
 
@@ -85,7 +87,7 @@ app.get('/api/studentui/initstudinfo', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/studentui/initstudinfo")
                 res.json(j)
             } catch (error) {
                 logger.error("/api/studentui/initstudinfo 解析 JSON 失败：")
@@ -117,7 +119,7 @@ app.get('/api/selectcourse/initACC', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/selectcourse/initACC", { "courseCode": req.query.courseCode })
                 res.json(j)
             } catch (error) {
                 logger.error("/api/selectcourse/initACC 解析 JSON 失败：")
@@ -148,7 +150,7 @@ app.post('/api/selectcourse/scSubmit', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/selectcourse/scSubmit", { "cttId": req.query.cttId })
                 res.json(j)
             } catch (error) {
                 logger.error("/api/selectcourse/scSubmit 解析 JSON 失败：")
@@ -180,7 +182,7 @@ app.get('/api/common/semesterSS', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/common/semesterSS")
                 res.json(j)
             } catch (error) {
                 logger.error("/api/common/semesterSS 解析 JSON 失败：")
@@ -211,7 +213,7 @@ app.get('/api/StudentCourseTable/getData', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/StudentCourseTable/getData", { "studentCode": req.query.studentCode, "yearTermId": req.query.yearTermId, "yearTermName": req.query.yearTermName })
                 res.json(j)
             } catch (error) {
                 logger.error("/api/StudentCourseTable/getData 解析 JSON 失败：")
@@ -242,7 +244,7 @@ app.get('/api/PublicQuery/getSelectCourseTermList', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/PublicQuery/getSelectCourseTermList", { "termId": req.query.termId })
                 res.json(j)
             } catch (error) {
                 logger.error("/api/PublicQuery/getSelectCourseTermList 解析 JSON 失败：")
@@ -273,7 +275,7 @@ app.get('/api/selectcourse/initSelCourses', (req, res) => {
             let j
             try {
                 j = JSON.parse(result)
-
+                logger.info("API OK /api/selectcourse/initSelCourses")
                 res.json(j)
             } catch (error) {
                 logger.error("/api/PublicQuery/getSelectCourseTermList 解析 JSON 失败：")
@@ -296,6 +298,9 @@ app.get('/api/dlsf/loginGetToken', (req, res) => {
 
     fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin")
         .then(response => {
+
+            logger.info("CAS 自动登录 1/3 步骤成功")
+
             const cookie = response.headers.getSetCookie()
             response.text().then(result => {
                 const pwdDefaultEncryptSalt = result.match(/var pwdDefaultEncryptSalt = "(.*?)";/)[1]
@@ -344,6 +349,8 @@ app.get('/api/dlsf/loginGetToken', (req, res) => {
 
                 fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin", options).then(response => {
 
+                    logger.info("CAS 自动登录 2/3 步骤成功")
+
                     let url
                     try {
                         url = response.headers.get('location').replace("http://", "https://")
@@ -373,6 +380,7 @@ app.get('/api/dlsf/loginGetToken', (req, res) => {
                         "method": "GET",
                         "redirect": 'manual'
                     }).then(response => {
+                        logger.info("CAS 自动登录 3/3 步骤成功")
                         const scookie = response.headers.get('set-cookie')
                         const JSESSIONID = scookie.match(/JSESSIONID=(.*?);/)[1]
                         const array = scookie.match(/array=(.*?);/)[1]
@@ -413,10 +421,6 @@ app.get('/api/dlsf/version', async (req, res) => {
     }
 })
 
-app.get('/api/dlsf/ping', (req, res) => {
-    res.send("OK")
-})
-
 app.get("/", (req, res) => {
     ejs.renderFile("./views/index/index.ejs").then(html => {
         res.send(html)
@@ -427,6 +431,14 @@ app.use(express.static('public'))
 
 app.listen(port, () => {
     logger.info("DLSF 已启动：http://localhost:" + port)
+})
+
+const wss = new WebSocket.Server({ port: port + 1 })
+
+logger.info("DLSF WebSocket 已启动：http://localhost:" + (port + 1))
+
+wss.on('connection', (ws) => {
+    ws.send("Hello DLSF")
 })
 
 if (config.auto_satart_browser == true) {

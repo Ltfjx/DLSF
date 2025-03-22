@@ -4,11 +4,7 @@ DLS Fucker
 > 悩めど悩めど答えは得られず、  
 > ならば咲かせよ刹那に飾る花。
 
-## Showcase
 ![](/pics/1.webp)
-![](/pics/2.webp)
-![](/pics/3.webp)
-![](/pics/4.webp)
 
 ## Install
 ```
@@ -22,16 +18,15 @@ npm install
 npm run start
 ```
 
+## Use DLSF in command-line
+[https://github.com/Ltfjx/DLSF-cli](https://github.com/Ltfjx/DLSF-cli)
+
 ## Termux Support
 ```
 pkg install nodejs
 pkg install git
-```
-```
 git clone https://github.com/Ltfjx/DLSF.git
 cd DLSF
-```
-```
 npm install
 npm run start
 ```

@@ -1,11 +1,11 @@
 
-var cancelTokens = {}
-var workers = []
-var interval = 3000
-var checkIfFull = true
-var particlesLoaded = false
-var particlesPaused = false
-var studentId
+let cancelTokens = {}
+let workers = []
+let interval = 3000
+let checkIfFull = true
+let particlesLoaded = false
+let particlesPaused = false
+let studentId
 
 
 // 导轨

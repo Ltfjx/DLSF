@@ -5,3 +5,21 @@
 <mdui-dialog id="dialog-darkside" headline="Welcome to the Darkside." icon="cruelty_free">
   欢迎来到暗面，隐藏功能已解锁。
 </mdui-dialog>
+
+<mdui-dialog id="dialog-cli-generate" headline="DLSF CLI 脚本生成" icon="terminal">
+  <div style="opacity: 0.5;">DLSF-CLI 是一个为长时间运行 DLSF 而设计的命令行接口，了解更多：</div><a href="https://github.com/Ltfjx/DLSF-cli"
+    target="_blank">https://github.com/Ltfjx/DLSF-cli</a>
+  <mdui-text-field type="text" id="dialog-cli-generate-output" readonly style="margin-top: 1rem;"
+    value="dlsf-cli -t 114:514" rows="5"></mdui-text-field>
+  <div style="margin-top: 1rem;">注意：生成的脚本包含敏感信息，不要轻易泄露给任何人。</div>
+  <mdui-button id="dialog-cli-generate-copy-and-close" full-width style="margin-top: 1rem;"
+    onclick="dialogCliGenerateCopyOutput()">复制并关闭</mdui-button>
+  <script>
+    function dialogCliGenerateCopyOutput() {
+      copyToClipboard('#dialog-cli-generate-output')
+    }
+    document.getElementById('dialog-cli-generate-copy-and-close').addEventListener('click', function () {
+      document.getElementById('dialog-cli-generate').open = false
+    })
+  </script>
+</mdui-dialog>

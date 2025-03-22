@@ -5,7 +5,8 @@
   </div>
   <div style="margin-bottom: 1rem;opacity: 0.75;">在此处管理抢课目标课程。</div>
   <div style="display: flex;align-items: center;margin-bottom: 1rem;">
-    <mdui-text-field id="input-target-courseCode" style="width: 15rem;" clearable label="课程编号" value=""></mdui-text-field>
+    <mdui-text-field id="input-target-courseCode" style="width: 15rem;" clearable label="课程编号"
+      value=""></mdui-text-field>
     &nbsp;&nbsp;
     <mdui-text-field id="input-target" style="width: 15rem;" clearable label="选课序号（非必填）" value=""></mdui-text-field>
     &nbsp;&nbsp;
@@ -32,6 +33,10 @@
     </tbody>
 
   </table>
+
+  <mdui-button variant="outlined" fullwidth style="margin-top: 1rem" onclick="generateCli()">
+    生成 DLSF-CLI 脚本
+  </mdui-button>
 </mdui-card>
 
 <div class="grid-container" id="container-worker">
@@ -45,7 +50,8 @@
 
     <div style="display: flex;align-items: center;">
       <div style="white-space: nowrap;">间隔调节</div>
-      <mdui-slider id="slider-main-speed" tickmarks value="3" step="1" min="1" max="15" oninput="interval=this.value*1000"></mdui-slider>
+      <mdui-slider id="slider-main-speed" tickmarks value="3" step="1" min="1" max="15"
+        oninput="interval=this.value*1000"></mdui-slider>
       <script>
         const slider = document.getElementById("slider-main-speed")
         slider.labelFormatter = (value) => `${value} 秒`

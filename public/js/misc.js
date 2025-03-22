@@ -52,3 +52,32 @@ function showMessage(message, position = "bottom-end") {
         placement: position
     })
 }
+
+// DLSF-CLI 脚本生成
+function generateCli() {
+    let _ = []
+    _.push("dlsf-cli")
+    targetList.forEach(target => {
+        _.push("-t")
+        _.push(`${target.courseCode}:${target.id}`)
+    })
+    _.push("-u")
+    _.push(localStorage.getItem("DLSF_username"))
+    _.push("-p")
+    _.push(localStorage.getItem("DLSF_password"))
+    _.push("-i")
+    _.push(interval / 1000)
+    checkIfFull ? "" : _.push("--nc")
+    _.push("-a")
+    _.push(document.location + "api")
+    document.getElementById("dialog-cli-generate-output").value = _.join(" ")
+    document.getElementById("dialog-cli-generate").open = true
+}
+
+// 复制
+function copyToClipboard(element) {
+    const urlInput = document.querySelector(element)
+    urlInput.select()
+    document.execCommand('copy')
+    mdui.snackbar({ "message": "复制成功" })
+}

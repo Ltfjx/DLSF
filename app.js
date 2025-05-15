@@ -1,11 +1,12 @@
 const express = require('express')
-const encryptAES = require('./utils/encryptAES')
 const simpleGit = require('simple-git')
 const ejs = require('ejs')
 const log4js = require('log4js')
 const yaml = require('yaml')
 const fs = require('fs')
 const WebSocket = require('ws')
+const axios = require('axios')
+const forge = require('node-forge')
 
 console.log(`
 ██████╗ ██╗     ███████╗    ███████╗██╗   ██╗ ██████╗██╗  ██╗███████╗██████╗ 
@@ -292,119 +293,95 @@ app.get('/api/selectcourse/initSelCourses', (req, res) => {
 
 app.get('/api/dlsf/loginGetToken', (req, res) => {
     const username = req.query.username
-    const unsalted_password = req.query.password
+    const password = req.query.password
 
+    // STEP 1
+    logger.debug("CAS STEP 1")
 
+    const app = "gateway"
+    const _ = Date.now()
+    logger.debug(`GET Policy PROCESS: https://cas.dhu.edu.cn/esc-sso/authn/policy?_=${_}&app=${app}`)
+    axios.get(`https://cas.dhu.edu.cn/esc-sso/authn/policy?_=${_}&app=${app}`).then(response => {
+        const policy = response.data
+        logger.info(`GET Policy OK`)
+        const { publicKey, publicKeyId } = policy.data.param
+        logger.debug(`Public Key: ${publicKey}`)
+        logger.debug(`Public Key ID: ${publicKeyId}`)
 
-    fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin")
-        .then(response => {
+        // STEP 2
+        logger.debug("CAS STEP 2")
+        const pem = `-----BEGIN PUBLIC KEY-----\n${publicKey.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`
+        logger.debug(`PEM:\n`, pem)
+        const pubKey = forge.pki.publicKeyFromPem(pem)
+        const encryptedBytes = pubKey.encrypt(password, 'RSAES-PKCS1-V1_5')
+        const encryptedBase64 = forge.util.encode64(encryptedBytes)
+        logger.info("Encrypted Password: ", encryptedBase64)
 
-            logger.info("CAS 自动登录 1/3 步骤成功")
+        // STEP 3
+        logger.debug("CAS STEP 3")
+        const _ = Date.now()
 
-            const cookie = response.headers.getSetCookie()
-            response.text().then(result => {
-                const pwdDefaultEncryptSalt = result.match(/var pwdDefaultEncryptSalt = "(.*?)";/)[1]
-                const password = encryptAES(unsalted_password, pwdDefaultEncryptSalt)
-                const lt = result.match(/name="lt" value="(.*?)"/)[1]
-                const dllt = "userNamePasswordLogin"
-                const execution = result.match(/name="execution" value="(.*?)"/)[1]
-                const _eventId = "submit"
-                const rmShown = "1"
+        const data = {
+            "authType": "webLocalAuth",
+            "dataField": {
+                "username": username,
+                "password": encryptedBase64,
+                "publicKeyId": publicKeyId
+            },
+            "extendField": {
+                "app": app
+            }
+        }
+        axios.post(`https://cas.dhu.edu.cn/esc-sso/authn/login?_=${_}`, data).then(response => {
+            const result = response.data
+            logger.info(`POST Login Result: `, result)
 
+            if (result.code == "IAM031006") {
+                logger.error("Wrong Username or Password")
+                res.json({ "DLSF_SUCCESS": false, "message": "用户名或密码错误" })
+                return
+            }
 
-                const route = cookie[0].match(/route=(.*?);/)[1]
-                const JSESSIONID_AUTH = cookie[1].match(/JSESSIONID_AUTH=(.*?);/)[1]
+            const setCookieHeaders = response.headers['set-cookie']
 
+            let cookieHeader = ''
+            if (Array.isArray(setCookieHeaders)) {
+                cookieHeader = setCookieHeaders
+                    .map(cookie => cookie.split(';')[0])
+                    .join('; ')
+            }
 
-                let options = {
-                    "headers": {
-                        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                        "accept-language": "zh-CN,zh;q=0.9,ja;q=0.8",
-                        "cache-control": "max-age=0",
-                        "content-type": "application/x-www-form-urlencoded",
-                        "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
-                        "sec-ch-ua-mobile": "?0",
-                        "sec-ch-ua-platform": "\"Windows\"",
-                        "sec-fetch-dest": "document",
-                        "sec-fetch-mode": "navigate",
-                        "sec-fetch-site": "same-origin",
-                        "sec-fetch-user": "?1",
-                        "upgrade-insecure-requests": "1",
-                        "cookie": `route=${encodeURIComponent(route)}; org.springframework.web.servlet.i18n.CookieLocaleResolver.LOCALE=zh_CN; JSESSIONID_AUTH=${encodeURIComponent(JSESSIONID_AUTH)}`,
-                        "Referer": "https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin",
-                        "Referrer-Policy": "strict-origin-when-cross-origin"
-                    },
-                    "body": `username=${encodeURIComponent(username)}`
-                        + `&password=${encodeURIComponent(password)}`
-                        + `&lt=${encodeURIComponent(lt)}`
-                        + `&dllt=${encodeURIComponent(dllt)}`
-                        + `&execution=${encodeURIComponent(execution)}`
-                        + `&_eventId=${encodeURIComponent(_eventId)}`
-                        + `&rmShown=${encodeURIComponent(rmShown)}`,
+            logger.debug(`Cookies: ${cookieHeader}`)
 
-                    "method": "POST",
-                    "redirect": 'manual'
+            axios.get('https://cas.dhu.edu.cn/esc-sso/login', {
+                maxRedirects: 0,
+                params: {
+                    'service': 'http://jwgl.dhu.edu.cn/dhu/casLogin'
+                }, headers: {
+                    'Cookie': cookieHeader
                 }
-
-
-                fetch("https://cas.dhu.edu.cn/authserver/login?service=http%3A%2F%2Fjwgl.dhu.edu.cn%2Fdhu%2FcasLogin", options).then(response => {
-
-                    logger.info("CAS 自动登录 2/3 步骤成功")
-
-                    let url
-                    try {
-                        url = response.headers.get('location').replace("http://", "https://")
-                    } catch (error) {
-                        console.log(error)
-                        res.json({ "DLSF_SUCCESS": false })
-                        return
-                    }
-
-                    fetch(url, {
-                        "headers": {
-                            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            "accept-language": "zh-CN,zh;q=0.9",
-                            "cache-control": "no-cache",
-                            "pragma": "no-cache",
-                            "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
-                            "sec-ch-ua-mobile": "?0",
-                            "sec-ch-ua-platform": "\"Windows\"",
-                            "sec-fetch-dest": "document",
-                            "sec-fetch-mode": "navigate",
-                            "sec-fetch-site": "none",
-                            "sec-fetch-user": "?1",
-                            "upgrade-insecure-requests": "1"
-                        },
-                        "referrerPolicy": "strict-origin-when-cross-origin",
-                        "body": null,
-                        "method": "GET",
-                        "redirect": 'manual'
-                    }).then(response => {
-                        logger.info("CAS 自动登录 3/3 步骤成功")
-                        const scookie = response.headers.get('set-cookie')
-                        const JSESSIONID = scookie.match(/JSESSIONID=(.*?);/)[1]
-                        const array = scookie.match(/array=(.*?);/)[1]
-                        res.json({ "DLSF_SUCCESS": true, "JSESSIONID": JSESSIONID, "array": array })
-                    }).catch(error => {
-                        res.json({ "DLSF_SUCCESS": false })
-                        logger.error("CAS 自动登录 3/3 步骤失败：")
-                        console.log(error)
-                    })
-
-
-                }).catch(error => {
-                    res.json({ "DLSF_SUCCESS": false })
-                    logger.error("CAS 自动登录 2/3 步骤失败：")
-                    console.log(error)
+            }).catch(result => {
+                axios.get(result.response.headers.location.replace("http://", "https://"), {
+                    maxRedirects: 0
+                }).catch(resultFinal => {
+                    const setCookie = resultFinal.response.headers['set-cookie']
+                    logger.debug(`Final Cookies: ${setCookie}`)
+                    const JSESSIONID = setCookie[0].match(/JSESSIONID=(.*?);/)[1]
+                    const array = setCookie[1].match(/array=(.*?);/)[1]
+                    logger.debug(`JSESSIONID: ${JSESSIONID}`)
+                    logger.debug(`Array: ${array}`)
+                    logger.info(`Login Success!`)
+                    res.json({ "DLSF_SUCCESS": true, "JSESSIONID": JSESSIONID, "array": array })
                 })
 
             })
+
+        }).catch(error => {
+            logger.error(`POST Login ERROR: ${error}`)
         })
-        .catch(error => {
-            res.json({ "DLSF_SUCCESS": false })
-            logger.error("CAS 自动登录 1/3 步骤失败：")
-            console.log(error)
-        })
+    }).catch(error => {
+        logger.error(`GET Policy ERROR: ${error}`)
+    })
 
 })
 

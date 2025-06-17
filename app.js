@@ -76,7 +76,7 @@ app.get('/api/studentui/initstudinfo', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -108,7 +108,7 @@ app.get('/api/selectcourse/initACC', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -139,7 +139,7 @@ app.post('/api/selectcourse/scSubmit', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -171,7 +171,7 @@ app.get('/api/common/semesterSS', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -202,7 +202,7 @@ app.get('/api/StudentCourseTable/getData', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -233,7 +233,7 @@ app.get('/api/PublicQuery/getSelectCourseTermList', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -264,7 +264,7 @@ app.get('/api/selectcourse/initSelCourses', (req, res) => {
     let config = {
         method: 'POST',
         headers: {
-            'Cookie': `JSESSIONID=${req.query.j};array=${req.query.a};`,
+            'Cookie': `JSESSIONID=${req.query.j};newjwgl=${req.query.a};`,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Host': 'jwgl.dhu.edu.cn'
         }
@@ -356,20 +356,21 @@ app.get('/api/dlsf/loginGetToken', (req, res) => {
             axios.get('https://cas.dhu.edu.cn/esc-sso/login', {
                 maxRedirects: 0,
                 params: {
-                    'service': 'http://jwgl.dhu.edu.cn/dhu/casLogin'
+                    'service': 'https://jwgl.dhu.edu.cn/dhu/casLogin'
                 }, headers: {
                     'Cookie': cookieHeader
                 }
             }).catch(result => {
-                axios.get(result.response.headers.location.replace("http://", "https://"), {
+                logger.debug(`Ticket: ${result.response.headers.location}`)
+                axios.get(result.response.headers.location, {
                     maxRedirects: 0
                 }).catch(resultFinal => {
                     const setCookie = resultFinal.response.headers['set-cookie']
                     logger.debug(`Final Cookies: ${setCookie}`)
                     const JSESSIONID = setCookie[0].match(/JSESSIONID=(.*?);/)[1]
-                    const array = setCookie[1].match(/array=(.*?);/)[1]
+                    const array = setCookie[1].match(/newjwgl=(.*?);/)[1]
                     logger.debug(`JSESSIONID: ${JSESSIONID}`)
-                    logger.debug(`Array: ${array}`)
+                    logger.debug(`Array(newjwgl): ${array}`)
                     logger.info(`Login Success!`)
                     res.json({ "DLSF_SUCCESS": true, "JSESSIONID": JSESSIONID, "array": array })
                 })

@@ -43,6 +43,13 @@ ws.onclose = () => {
     }, 1000)
 }
 
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data)
+    if (data.type == "workwechat-verify") {
+        dialogWorkWechatVerifyOpen()
+    }
+}
+
 
 // 通用消息条
 function showMessage(message, position = "bottom-end") {

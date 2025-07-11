@@ -23,3 +23,28 @@
     })
   </script>
 </mdui-dialog>
+
+<mdui-dialog id="dialog-workwechat-verify" headline="企业微信验证码" icon="password">
+  <div style="opacity: 0.5;">用于自动登录的验证码已发送，请输入验证码：</div>
+  <mdui-text-field type="text" id="dialog-workwechat-verify-code" style="margin-top: 1rem;" rows="1"></mdui-text-field>
+  <mdui-button id="dialog-cli-generate-copy-and-close" full-width style="margin-top: 1rem;"
+    onclick="dialogWorkWechatVerifySubmit()">提交</mdui-button>
+  <script>
+    function dialogWorkWechatVerifyOpen(){
+      document.getElementById('dialog-workwechat-verify').open = true
+    }
+    function dialogWorkWechatVerifySubmit() {
+      var code = document.getElementById('dialog-workwechat-verify-code').value
+      if (code.length !== 6) {
+        showMessage('验证码格式错误')
+      } else {
+        const message = JSON.stringify({
+          "type": "workwechat-verify-code",
+          "data": code
+        })
+        ws.send(message)
+        document.getElementById('dialog-workwechat-verify').open = false
+      }
+    }
+  </script>
+</mdui-dialog>

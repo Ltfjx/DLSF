@@ -699,8 +699,10 @@ function arrangeSendToFucker() {
     arrangeLessonList.forEach(item => {
         item.lessons.forEach(lesson => {
             if (lesson.selected) {
-                document.getElementById("input-target-courseCode").value = item.code
-                document.getElementById("input-target").value = lesson.selectCode
+                // arrange 面板按教学班送过来（含 selectCode = cttId），对应抢课模式
+                const modeEl = document.getElementById("input-target-mode")
+                if (modeEl) modeEl.value = "normal"
+                document.getElementById("input-target-code").value = lesson.selectCode
                 buttonTargetAdd()
                 count++
             }

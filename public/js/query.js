@@ -105,7 +105,10 @@ function showEmptyTable() {
 }
 
 function addLessonByLessonCode(lessonCode) {
-    document.getElementById("input-target-courseCode").value = lessonCode
+    // query 面板按课程编号(kcbh)送过来，对应捡漏模式
+    const modeEl = document.getElementById("input-target-mode")
+    if (modeEl) modeEl.value = "pickup"
+    document.getElementById("input-target-code").value = lessonCode
     buttonTargetAdd()
 }
 

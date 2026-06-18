@@ -61,6 +61,49 @@ let studentId
 // 设置项初始化
 var cookie = JSON.parse(localStorage.getItem("DLSF_cookie")) || {}
 var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
+// 向后兼容：旧 target 没有 mode 字段，根据 swapFromId 推断
+targetList.forEach(t => {
+    if (!t.mode) t.mode = t.swapFromId ? "swap" : "normal"
+})
+// 课程库索引（启动时从 /courses_full.json 加载）
+// byCttId: cttId -> { course, cls } ；byKcbh: kcbh -> course
+var coursesIndex = { byCttId: {}, byKcbh: {}, ready: false, totalCourses: 0, totalClasses: 0 }
+
+
+// 加载课程库
+!(async function () {
+    const statusEl = () => document.getElementById("courses-index-status")
+    try {
+        const resp = await fetch('/courses_full.json', { cache: 'no-cache' })
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const data = await resp.json()
+        const byCttId = {}
+        const byKcbh = {}
+        let totalClasses = 0
+        for (const course of data.courses || []) {
+            const kcbh = String(course.kcbh || '').trim()
+            if (kcbh) byKcbh[kcbh] = course
+            const classes = course.timetable && course.timetable.classes || []
+            for (const cls of classes) {
+                const cttId = String(cls.cttId || '').trim()
+                if (cttId) {
+                    byCttId[cttId] = { course, cls }
+                    totalClasses++
+                }
+            }
+        }
+        coursesIndex.byCttId = byCttId
+        coursesIndex.byKcbh = byKcbh
+        coursesIndex.totalCourses = (data.courses || []).length
+        coursesIndex.totalClasses = totalClasses
+        coursesIndex.ready = true
+        if (statusEl()) statusEl().innerHTML = `课程库就绪：${coursesIndex.totalCourses} 门课 / ${totalClasses} 个教学班`
+        console.log('[coursesIndex] loaded', coursesIndex.totalCourses, 'courses,', totalClasses, 'classes')
+    } catch (e) {
+        console.error('[coursesIndex] 加载失败:', e)
+        if (statusEl()) statusEl().innerHTML = `课程库加载失败：${e.message || e}`
+    }
+})()
 
 
 !(async function () {
@@ -70,6 +113,21 @@ var targetList = JSON.parse(localStorage.getItem("DLSF_target")) || []
     document.getElementById("input-cookie-username").value = localStorage.getItem("DLSF_username") || ""
     document.getElementById("input-cookie-password").value = localStorage.getItem("DLSF_password") || ""
     document.getElementById("settings-checkbox-checkupdate").checked = localStorage.getItem("DLSF_checkupdate") == "true" ? true : false
+
+    // PushPlus 推送设置
+    const pushTokenEl = document.getElementById("settings-pushplus-token")
+    const pushEnEl = document.getElementById("settings-pushplus-enabled")
+    if (pushTokenEl && pushEnEl) {
+        pushTokenEl.value = localStorage.getItem("DLSF_pushplus_token") || ""
+        pushEnEl.checked = localStorage.getItem("DLSF_pushplus_enabled") === "true"
+        pushTokenEl.addEventListener("change", () => {
+            localStorage.setItem("DLSF_pushplus_token", pushTokenEl.value.trim())
+        })
+        pushEnEl.addEventListener("change", () => {
+            localStorage.setItem("DLSF_pushplus_enabled", pushEnEl.checked ? "true" : "false")
+        })
+    }
+
     targetListRender()
     // 如果 cookie 失效，尝试使用用户名密码登录
     if (!await checkCookie()) { buttonSaveUser() }
@@ -378,6 +436,101 @@ async function cancelSwapFromCourse(target) {
     }
 }
 
+
+// PushPlus 推送：抢课/换课/捡漏 成功后调用，静默吞错，不阻塞主流程
+async function sendPushPlusNotification(target, successCttId) {
+    const token = localStorage.getItem("DLSF_pushplus_token")
+    if (!token || localStorage.getItem("DLSF_pushplus_enabled") !== "true") return
+    const modeLabel = target.mode === 'swap' ? '换课'
+        : target.mode === 'pickup' ? '捡漏'
+            : '抢课'
+    try {
+        await axios.post('/api/dlsf/pushplus', {
+            token,
+            title: `DLSF ${modeLabel}成功`,
+            content: `课程: ${target.name || target.courseCode}<br>教学班: ${successCttId}<br>时间: ${new Date().toLocaleString()}`,
+            template: "html"
+        }, { timeout: 6000 })
+    } catch (e) {
+        console.warn("PushPlus 推送失败:", e)
+    }
+}
+
+// 设置面板的"测试推送"按钮回调
+async function buttonPushPlusTest() {
+    const token = (document.getElementById("settings-pushplus-token").value || "").trim()
+    if (!token) {
+        showMessage("请先填写 PushPlus Token")
+        return
+    }
+    try {
+        const r = await axios.post('/api/dlsf/pushplus', {
+            token,
+            title: "DLSF 推送测试",
+            content: "测试消息：DLSF 已能向你的微信推送通知。",
+            template: "html"
+        }, { timeout: 6000 })
+        if (r.data && r.data.DLSF_SUCCESS && r.data.code === 200) {
+            showMessage("推送成功，请查看微信")
+        } else {
+            const msg = r.data && (r.data.msg || r.data.error) || '未知错误'
+            showMessage(`推送失败：${msg}`)
+        }
+    } catch (e) {
+        showMessage(`推送请求异常：${e.message || e}`)
+    }
+}
+
+
+// 捡漏 worker：遍历候选 cttId 检查余量，发现空位立刻抢
+// 返回 { allDone, captcha }，由调用方决定是否 stopWorkerByTarget
+async function workerPickupMode(target, w, r) {
+    if (!target.candidateCttIds || target.candidateCttIds.length === 0) {
+        w.children[0].style["background"] = "lightgreen"
+        w.children[1].innerHTML = "所有候选教学班已处理完毕"
+        return { allDone: true }
+    }
+
+    // 一轮内对每个候选查 initACC（cancelToken key 各不相同避免互相取消）
+    const available = []
+    for (const cttId of target.candidateCttIds) {
+        w.children[1].innerHTML = `检查教学班 ${cttId}...`
+        const lesson = await getAccLessonByCttId(target.courseCode, cttId, `pickup-${target.courseCode}-${cttId}`)
+        if (lesson && hasAvailableSeat(lesson)) {
+            available.push({ cttId, lesson })
+        }
+        await new Promise(res => setTimeout(res, 200 + Math.random() * 300))
+    }
+
+    if (available.length === 0) {
+        w.children[0].style["background"] = "lightgray"
+        w.children[1].innerHTML = `${target.candidateCttIds.length} 个候选均无余量，即将重试...`
+        return { allDone: false }
+    }
+
+    for (const { cttId } of available) {
+        w.children[1].innerHTML = `${cttId} 有余量，正在抢...`
+        let res
+        try { res = await selectCourse(cttId) } catch (e) { continue }
+        setWorkerRawText(r, res)
+        if (isCaptchaResult(res)) {
+            w.children[0].style["background"] = "lightcoral"
+            w.children[1].innerHTML = `${cttId} 出现验证码，本线程已停止！`
+            return { captcha: true }
+        }
+        if (await resolveSelectSuccess(res, cttId, `pickup-verify-${cttId}`)) {
+            w.children[0].style["background"] = "lightgreen"
+            w.children[1].innerHTML = `捡漏成功！教学班 ${cttId}`
+            sendPushPlusNotification(target, cttId)
+            target.candidateCttIds = target.candidateCttIds.filter(x => x !== cttId)
+            targetSave()
+            return { allDone: target.candidateCttIds.length === 0 }
+        }
+    }
+    return { allDone: false }
+}
+
+
 function switchMain() {
     let s = document.getElementById("switch-main")
     let activeWorker = undefined
@@ -398,6 +551,24 @@ function switchMain() {
                     w.children[0].style["background"] = "lightgoldenrodyellow"
                     w.children[1].innerHTML = `正在发送请求`
                     r.style["opacity"] = "0.3"
+
+                    // 捡漏模式：走独立 worker 函数，不进入下面的 normal/swap 分支
+                    if (target.mode === 'pickup') {
+                        try {
+                            const result = await workerPickupMode(target, w, r)
+                            if (result.allDone || result.captcha) {
+                                activeWorker = stopWorkerByTarget(target, activeWorker)
+                                document.getElementById("switch-main-status").children[2].innerHTML = `脚本运行中 (${activeWorker}/${targetList.length})`
+                            }
+                        } catch (error) {
+                            console.error(error)
+                            w.children[0].style["background"] = "lightgray"
+                            w.children[1].innerHTML = "请求异常，即将重试..."
+                        } finally {
+                            busy = false
+                        }
+                        return
+                    }
 
                     try {
                         let lessonData = await getAccLessonByCttId(target.courseCode, target.id, `target-${target.id}`)
@@ -497,6 +668,7 @@ function switchMain() {
                         ) {
                             w.children[0].style["background"] = "lightgreen"
                             w.children[1].innerHTML = target.swapFromId ? `换课成功！` : `抢课成功！`
+                            sendPushPlusNotification(target, target.id)
                             activeWorker = stopWorkerByTarget(target, activeWorker)
                             document.getElementById("switch-main-status").children[2].innerHTML = `脚本运行中 (${activeWorker}/${targetList.length})`
                         } else {
@@ -590,10 +762,15 @@ function targetListRender() {
     let t = document.getElementById("target-tbody")
     t.innerHTML = ""
     targetList.forEach(target => {
+        const modeBadge = target.mode === 'pickup'
+            ? `<mdui-chip elevated style="--mdui-color-primary: 130 130 230;">捡漏</mdui-chip>`
+            : target.mode === 'swap'
+                ? `<mdui-chip elevated>换课</mdui-chip>`
+                : `<mdui-chip elevated>抢课</mdui-chip>`
         t.innerHTML += `
         <tr>
             <td>${target.id}</td>
-            <td>${target.swapFromId || "-"}</td>
+            <td>${modeBadge}</td>
             <td>${target.name}</td>
             <th>${target.num}</th>
             <td>${target.teacher}</td>
@@ -603,7 +780,9 @@ function targetListRender() {
             <td>${target.info}</td>
             <td style="padding: 0.3rem;display: flex;height: 100%;align-items: center;">
                 <mdui-button-icon icon="delete" onclick="targetDelete('${target.id}')"></mdui-button-icon>
-                <mdui-button-icon icon="refresh" onclick="targetRefresh('${target.courseCode}','${target.id}')"></mdui-button-icon>
+                ${target.mode === 'pickup'
+                    ? ''
+                    : `<mdui-button-icon icon="refresh" onclick="targetRefresh('${target.courseCode}','${target.id}')"></mdui-button-icon>`}
             </td>
         </tr>
         `
@@ -615,60 +794,103 @@ function sanitizeTargetInput(value) {
     return String(value || "").trim().replace(/[^\w-]/g, "")
 }
 
-// 弹窗里点击添加时，复用当前输入的换课来源
-function targetAddFromDialog(courseCode, id, swapFromId = "") {
-    targetAdd(courseCode, id, swapFromId)
+// 把 schedule 数组合并成"周次/时间/教室"三段字符串
+function summarizeSchedule(schedule) {
+    if (!Array.isArray(schedule) || schedule.length === 0) {
+        return { weeks: "-", time: "-", room: "-" }
+    }
+    return {
+        weeks: schedule.map(s => s.weeks || "").filter(Boolean).join(" / ") || "-",
+        time: schedule.map(s => s.time_slot || "").filter(Boolean).join(" / ") || "-",
+        room: schedule.map(s => s.classroom || "").filter(Boolean).join(" / ") || "-"
+    }
 }
 
 function buttonTargetAdd() {
-    let id = sanitizeTargetInput(document.getElementById("input-target").value)
-    let courseCode = sanitizeTargetInput(document.getElementById("input-target-courseCode").value)
-    let swapFromId = sanitizeTargetInput(document.getElementById("input-target-swapFromId").value)
+    const modeEl = document.getElementById("input-target-mode")
+    const codeEl1 = document.getElementById("input-target-code")
+    const codeEl2 = document.getElementById("input-swap-source")
+    const mode = modeEl ? modeEl.value : 'normal'
 
-    // 仅在填写了换课来源时做额外校验
-    if (document.getElementById("input-target-swapFromId").value && !swapFromId) {
-        showMessage("已选课程序号格式不正确")
+    if (!coursesIndex.ready) {
+        showMessage("课程库尚未加载完成，请稍后重试")
         return
     }
 
-    document.getElementById("input-target").value = ""
-    document.getElementById("input-target-courseCode").value = ""
-    document.getElementById("input-target-swapFromId").value = ""
-
-    if (id && courseCode) {
-        targetAdd(courseCode, id, swapFromId)
-    } else if (courseCode) {
-        dialogTargetAddOpen()
-
-        let t = document.getElementById("target-add-tbody")
-        t.innerHTML = ""
-        document.getElementById("dialog-target-add-title").innerHTML = ""
-
-        api("/selectcourse/initACC", { courseCode: courseCode }).then(result => {
-            document.getElementById("dialog-target-add-title").innerHTML = result.curCourse.kcmc
-            result.aaData.forEach(course => {
-                t.innerHTML += `
-                <tr style="background-color: ${course.enrollCnt >= course.maxCnt ? "#FF000018" : ""};">
-                    <td>${course.cttId}</td>
-                    <th>${course.maxCnt}/${course.applyCnt}/${course.enrollCnt}</th>
-                    <td>${course.techName}</td>
-                    <td>${course.useWeek1}</td>
-                    <td>${course.classTime1}</td>
-                    <td>${course.roomcode1}</td>
-                    <td>${course.priorMajors}</td>
-                    <td style="padding: 0.3rem;display: flex;height: 100%;align-items: center;">
-                        <mdui-button-icon icon="add" onclick="targetAddFromDialog('${courseCode}','${course.cttId}','${swapFromId}')"></mdui-button-icon>
-                    </td>
-                </tr>
-                `
-            })
+    if (mode === 'normal') {
+        // ── 抢课：输入 cttId ──
+        const cttId = sanitizeTargetInput(codeEl1 ? codeEl1.value : "")
+        if (!cttId) { showMessage("请填写目标选课序号"); return }
+        const hit = coursesIndex.byCttId[cttId]
+        if (!hit) { showMessage(`未在课程库中找到选课序号 ${cttId}`); return }
+        if (targetList.some(t => t.id === cttId)) { showMessage("该选课序号已存在于列表中"); return }
+        const { course, cls } = hit
+        const sch = summarizeSchedule(cls.schedule)
+        targetList.push({
+            "id": cttId, "courseCode": String(course.kcbh || ""), "swapFromId": "", "mode": "normal",
+            "name": course.kcmc || "", "num": `${cls.maxCnt ?? "-"}/${cls.applyCnt ?? "-"}/${cls.enrollCnt ?? "-"}`,
+            "teacher": cls.teacher_name || "", "week": sch.weeks, "time": sch.time, "room": sch.room, "info": course.orgname || ""
         })
+        codeEl1.value = ""; codeEl2.value = ""
+        targetListRender(); targetSave()
+        showMessage(`已添加：${course.kcmc} / ${cls.teacher_name || cttId}`)
 
+    } else if (mode === 'swap') {
+        // ── 换课：输入目标 cttId + 当前 cttId（swapFromId）──
+        const targetCttId = sanitizeTargetInput(codeEl1 ? codeEl1.value : "")
+        const sourceCttId = sanitizeTargetInput(codeEl2 ? codeEl2.value : "")
+        if (!targetCttId || !sourceCttId) { showMessage("请同时填写目标选课序号和当前已选的选课序号"); return }
+        if (targetCttId === sourceCttId) { showMessage("目标教学班和当前教学班不能相同"); return }
+        const targetHit = coursesIndex.byCttId[targetCttId]
+        if (!targetHit) { showMessage(`未在课程库中找到目标选课序号 ${targetCttId}`); return }
+        const sourceHit = coursesIndex.byCttId[sourceCttId]
+        if (!sourceHit) { showMessage(`未在课程库中找到当前选课序号 ${sourceCttId}`); return }
+        // 校验两个 cttId 是否属于同一门课（同一 kcbh），否则换课没意义
+        const targetKcbh = String(targetHit.course.kcbh || "")
+        const sourceKcbh = String(sourceHit.course.kcbh || "")
+        if (targetKcbh !== sourceKcbh) {
+            showMessage("目标教学班和当前教学班不属于同一门课程，无法换课")
+            return
+        }
+        const virtualId = `swap:${targetCttId}`
+        if (targetList.some(t => t.id === virtualId)) { showMessage("该换课目标已存在"); return }
+        const { course, cls } = targetHit
+        const sch = summarizeSchedule(cls.schedule)
+        const sourceCls = sourceHit.cls
+        targetList.push({
+            "id": virtualId, "courseCode": targetKcbh, "swapFromId": sourceCttId, "mode": "swap",
+            "name": course.kcmc || "", "num": `${cls.maxCnt ?? "-"}/${cls.applyCnt ?? "-"}/${cls.enrollCnt ?? "-"}`,
+            "teacher": cls.teacher_name || "", "week": sch.weeks, "time": sch.time, "room": sch.room,
+            "info": `从 ${sourceCttId}(${sourceCls.teacher_name || ""}) 换到 ${targetCttId}(${cls.teacher_name || ""})`
+        })
+        codeEl1.value = ""; codeEl2.value = ""
+        targetListRender(); targetSave()
+        showMessage(`已添加换课：${course.kcmc} → ${cls.teacher_name || targetCttId}`)
 
-    } else {
-        showMessage("请填写课程编号")
+    } else if (mode === 'pickup') {
+        // ── 捡漏：输入一个 cttId，只盯这一个教学班；通过 initACC 先查余量再决定是否抢 ──
+        const cttId = sanitizeTargetInput(codeEl1 ? codeEl1.value : "")
+        if (!cttId) { showMessage("请填写选课序号"); return }
+        const hit = coursesIndex.byCttId[cttId]
+        if (!hit) { showMessage(`未在课程库中找到选课序号 ${cttId}`); return }
+        const { course, cls } = hit
+        const kcbh = String(course.kcbh || "")
+        const virtualId = `pickup:${cttId}`
+        if (targetList.some(t => t.id === virtualId)) { showMessage("该捡漏目标已存在"); return }
+        const sch = summarizeSchedule(cls.schedule)
+        targetList.push({
+            "id": virtualId, "courseCode": kcbh, "swapFromId": "", "mode": "pickup",
+            "candidateCttIds": [cttId],  // 只盯用户指定的这一个教学班
+            "name": course.kcmc || `[捡漏] ${cttId}`,
+            "num": `${cls.maxCnt ?? "-"}/${cls.applyCnt ?? "-"}/${cls.enrollCnt ?? "-"}`,
+            "teacher": cls.teacher_name || "",
+            "week": sch.weeks, "time": sch.time, "room": sch.room,
+            "info": `捡漏 ${cttId} · 有余量时自动抢 (${course.orgname || ""})`
+        })
+        codeEl1.value = ""; codeEl2.value = ""
+        targetListRender(); targetSave()
+        showMessage(`已添加捡漏目标：${course.kcmc} / ${cls.teacher_name || cttId}`)
     }
-
 }
 
 function targetAdd(courseCode, id, swapFromId = "") {
@@ -688,6 +910,7 @@ function targetAdd(courseCode, id, swapFromId = "") {
             "id": id,
             "courseCode": courseCode,
             "swapFromId": swapFromId,
+            "mode": swapFromId ? "swap" : "normal",
             "name": "",
             "num": "",
             "teacher": "",
@@ -702,6 +925,8 @@ function targetAdd(courseCode, id, swapFromId = "") {
         dialogTargetAddClose()
     }
 }
+
+// 添加捡漏模式目标的核心逻辑已合并进 buttonTargetAdd（按下拉框分流）。
 
 function targetDeleteAll() {
     if (targetList.length > 0) {

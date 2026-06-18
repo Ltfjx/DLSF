@@ -5,24 +5,53 @@
   </div>
   <div style="margin-bottom: 1rem;opacity: 0.75;">在此处管理抢课目标课程。</div>
   <div style="display: flex;flex-wrap: wrap;gap: 0.75rem;align-items: center;margin-bottom: 1rem;">
-    <mdui-text-field id="input-target-courseCode" style="width: 15rem;max-width: 100%;" clearable label="课程编号"
-      value=""></mdui-text-field>
-    <mdui-text-field id="input-target" style="width: 15rem;max-width: 100%;" clearable label="选课序号（可选）" value=""></mdui-text-field>
-    <div style="display: flex;align-items: center;gap: 0.35rem;max-width: 100%;">
-      <mdui-text-field id="input-target-swapFromId" style="width: 18rem;max-width: 100%;" clearable label="已选课程序号（换老师时填写）" value=""></mdui-text-field>
-      <mdui-tooltip content="换课模式下，脚本会先检测目标老师是否有余量；有余量时，再退掉你当前已选的这门课，并立即尝试选择目标老师。如果退课之后目标课程被抢，会自动把原来的课程抢回来。">
-        <mdui-button-icon icon="help_outline"></mdui-button-icon>
-      </mdui-tooltip>
-    </div>
+    <mdui-select id="input-target-mode" style="width: 10rem;" value="normal">
+      <mdui-menu-item value="normal">抢课</mdui-menu-item>
+      <mdui-menu-item value="swap">换课</mdui-menu-item>
+      <mdui-menu-item value="pickup">捡漏</mdui-menu-item>
+    </mdui-select>
+    <mdui-text-field id="input-target-code" style="width: 22rem;max-width: 100%;" clearable></mdui-text-field>
+    <mdui-text-field id="input-swap-source" style="width: 22rem;max-width: 100%;" clearable hidden></mdui-text-field>
     <mdui-button onclick="buttonTargetAdd()">添加</mdui-button>
+    <span id="courses-index-status" style="opacity: 0.55;font-size: 0.85rem;">课程库加载中...</span>
   </div>
+
+  <script>
+    document.getElementById("input-target-mode").addEventListener("change", function () {
+      const normal = this.value === 'normal'
+      const swap = this.value === 'swap'
+      const pickup = this.value === 'pickup'
+      const field1 = document.getElementById("input-target-code")
+      const field2 = document.getElementById("input-swap-source")
+      if (normal) {
+        field1.label = "目标选课序号 (cttId)"
+        field1.help = "输入要抢的教学班序号"
+        field1.hidden = false
+        field2.hidden = true
+      } else if (swap) {
+        field1.label = "目标选课序号 (cttId)"
+        field1.help = "要换过去的目标教学班"
+        field1.hidden = false
+        field2.label = "当前已选选课序号 (cttId)"
+        field2.help = "你当前已在这门课的哪个教学班"
+        field2.hidden = false
+      } else if (pickup) {
+        field1.label = "选课序号 (cttId)"
+        field1.help = "输入该课程任意一个教学班序号，自动收集该课程所有班次"
+        field1.hidden = false
+        field2.hidden = true
+      }
+    })
+    // 初始触发以设置默认 label
+    setTimeout(() => document.getElementById("input-target-mode").dispatchEvent(new Event("change")), 100)
+  </script>
 
 
   <table class="mdui-table" style="margin: 0;">
     <thead>
       <tr>
         <th>选课序号</th>
-        <th>换课来源</th>
+        <th>模式</th>
         <th>课程名称</th>
         <th>最大/申请/已录</th>
         <th>任课教师</th>

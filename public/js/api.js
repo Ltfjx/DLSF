@@ -49,7 +49,8 @@ async function api(target, params) {
         "/StudentCourseTable/getData": "GET",
         "/dlsf/version": "GET",
         "/PublicQuery/getSelectCourseTermList": "GET",
-        "/selectcourse/initSelCourses": "GET"
+        "/selectcourse/initSelCourses": "GET",
+        "/dlsf/pushplus": "POST"
     }
 
     let config = {

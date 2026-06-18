@@ -15,6 +15,22 @@
 
   <mdui-card variant="elevated" class="grid-card">
     <div style="display: flex;align-items: center;margin-bottom: 1rem;">
+      <mdui-icon name="notifications--outlined" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
+      <div style="font-size: x-large;font-weight: bold;">PushPlus 推送</div>
+    </div>
+    <div style="margin-bottom: 1rem;opacity: 0.75;">
+      抢课 / 换课 / 捡漏 成功后通过 PushPlus 推送到微信。Token 在 <a href="http://www.pushplus.plus" target="_blank">pushplus.plus</a> 注册获取。
+    </div>
+    <mdui-text-field id="settings-pushplus-token" clearable label="PushPlus Token"></mdui-text-field>
+    <div style="display: flex;align-items: center;gap: 1rem;margin-top: 0.75rem;">
+      <mdui-switch id="settings-pushplus-enabled"></mdui-switch>
+      <span>启用推送</span>
+      <mdui-button variant="outlined" onclick="buttonPushPlusTest()" style="margin-left: auto;">测试推送</mdui-button>
+    </div>
+  </mdui-card>
+
+  <mdui-card variant="elevated" class="grid-card">
+    <div style="display: flex;align-items: center;margin-bottom: 1rem;">
       <mdui-icon name="bug_report" style="font-size: 2rem;margin-right: 1rem;"></mdui-icon>
       <div style="font-size: x-large;font-weight: bold;">Debug</div>
     </div>

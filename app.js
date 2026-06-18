@@ -43,6 +43,7 @@ logger.info("配置文件加载成功")
 logger.trace(config)
 
 const app = express()
+app.use(express.json({ limit: '64kb' }))
 const safeMode = config.safe_mode
 const port = config.port
 
@@ -210,6 +211,40 @@ app.post('/api/selectcourse/cancelSC', (req, res) => {
             logger.error("/api/selectcourse/cancelSC 请求失败：")
             console.log(error)
             res.json({ "DLSF_SUCCESS": false })
+        })
+})
+
+
+// PushPlus 推送代理：抢课/换课/捡漏 成功后通过 PushPlus 推送到微信
+// 不附加 DHU Cookie，5 秒超时，失败不阻塞主流程
+app.post('/api/dlsf/pushplus', (req, res) => {
+    const { token, title, content, template = 'html' } = req.body || {}
+    if (!token || !title || !content) {
+        return res.json({ DLSF_SUCCESS: false, error: 'missing fields' })
+    }
+
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), 5000)
+
+    fetch('http://www.pushplus.plus/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, title, content, template }),
+        signal: ctrl.signal
+    })
+        .then(r => r.text())
+        .then(text => {
+            clearTimeout(tid)
+            let j
+            try { j = JSON.parse(text) } catch { j = { raw: text } }
+            logger.info('API OK /api/dlsf/pushplus', { code: j.code })
+            res.json({ DLSF_SUCCESS: true, ...j })
+        })
+        .catch(err => {
+            clearTimeout(tid)
+            logger.error('/api/dlsf/pushplus 请求失败：')
+            console.log(err)
+            res.json({ DLSF_SUCCESS: false, error: String(err && err.message || err) })
         })
 })
 

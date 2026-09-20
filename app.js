@@ -65,7 +65,9 @@ app.use((req, res, next) => {
     if (!req.url.startsWith("/api")) {
         logger.debug("STATIC" + " " + req.url)
     } else if (!req.url.endsWith("/ping")) {
-        logger.info("API " + req.method + " " + req.url.split("&j=")[0]) // 去除 token 参数
+        // 去除 token 参数，并把密码脱敏，避免登录密码被明文写入日志
+        let logUrl = req.url.split("&j=")[0].replace(/password=[^&]*/g, "password=***")
+        logger.info("API " + req.method + " " + logUrl)
     }
     next()
 })

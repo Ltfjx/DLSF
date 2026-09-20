@@ -7,6 +7,13 @@ let particlesLoaded = false
 let particlesPaused = false
 let studentId
 
+// 自动重登录相关状态
+let reloginPromise = null          // 单飞（single-flight）：多个 worker 同时发现登录失效时只会真正登录一次
+let sessionProbePromise = null     // 探测 cookie 是否有效时同样做单飞处理
+let lastReloginAttempt = 0         // 上次尝试重新登录的时间戳
+let consecutiveReloginFailures = 0 // 连续登录失败次数
+const RELOGIN_COOLDOWN = 30000     // 两次登录尝试之间的最小间隔，避免频繁登录触发 CAS 风控
+const MAX_RELOGIN_FAILURES = 3     // 连续失败达到该次数后停止自动重登录，改为提醒用户
 
 // 导轨
 !(function () {
@@ -130,18 +137,147 @@ async function buttonSaveUser() {
     if (await loginUser()) { showMessage("自动登录成功") } else { showMessage("自动登录失败，请检查用户名和密码") }
 }
 
+// 读取登录用的用户名密码
+// 输入框里是用户当前填写的内容，优先使用，避免用户改了输入框但没保存时仍然拿旧密码去登录
+function getCredentials() {
+    const usernameInput = document.getElementById("input-cookie-username")
+    const passwordInput = document.getElementById("input-cookie-password")
+    const username = ((usernameInput && usernameInput.value) || localStorage.getItem("DLSF_username") || "").trim()
+    const password = (passwordInput && passwordInput.value) || localStorage.getItem("DLSF_password") || ""
+    return { username: username, password: password }
+}
+
 async function loginUser() {
-    const result = await api("/dlsf/loginGetToken", { username: localStorage.getItem("DLSF_username"), password: localStorage.getItem("DLSF_password") })
-    if (result.DLSF_SUCCESS) {
+    const credentials = getCredentials()
+    if (!credentials.username || !credentials.password) {
+        console.log("[自动重登录] 用户名或密码为空，跳过登录")
+        return false
+    }
+
+    const result = await api("/dlsf/loginGetToken", { username: credentials.username, password: credentials.password })
+    if (result && result.DLSF_SUCCESS) {
         document.getElementById("input-cookie-JSESSIONID").value = result.JSESSIONID
         document.getElementById("input-cookie-array").value = result.array
         cookie.JSESSIONID = result.JSESSIONID
         cookie.array = result.array
         localStorage.setItem("DLSF_cookie", JSON.stringify(cookie))
-        checkCookie()
+        // 记录本次登录使用的凭据与登录时间，登录时间用于统计 cookie 实际存活了多久
+        localStorage.setItem("DLSF_username", credentials.username)
+        localStorage.setItem("DLSF_password", credentials.password)
+        localStorage.setItem("DLSF_loginTime", String(Date.now()))
+        consecutiveReloginFailures = 0
+        await checkCookie()
         return true
     } else {
         return false
+    }
+}
+
+// 判断接口返回是否代表登录状态（cookie）已经失效
+// 服务端拿不到教务系统的有效响应时（例如被重定向到登录页导致 JSON 解析失败）会返回 DLSF_SUCCESS: false
+function isSessionInvalidResult(result) {
+    return !result || result.DLSF_SUCCESS === false
+}
+
+// 探测当前 cookie 是否仍然有效，用来排除偶发的网络错误
+function probeSession() {
+    if (sessionProbePromise) {
+        return sessionProbePromise
+    }
+
+    sessionProbePromise = (async () => {
+        try {
+            // 带上 _ 参数以免和 cookie 面板手动触发的 checkCookie 请求互相取消
+            const result = await api("/studentui/initstudinfo", { _: "probe" })
+            return !!(result && result.success)
+        } catch (error) {
+            return false
+        } finally {
+            sessionProbePromise = null
+        }
+    })()
+
+    return sessionProbePromise
+}
+
+// 单飞（single-flight）自动重登录：多个 worker 同时发现失效时只会真正登录一次
+function autoRelogin() {
+    if (reloginPromise) {
+        return reloginPromise
+    }
+
+    reloginPromise = (async () => {
+        try {
+            const credentials = getCredentials()
+            if (!credentials.username || !credentials.password) {
+                console.log("[自动重登录] 未填写用户名或密码，无法自动重登录")
+                return false
+            }
+
+            if (consecutiveReloginFailures >= MAX_RELOGIN_FAILURES) {
+                console.log("[自动重登录] 连续登录失败次数过多，已停止自动重登录")
+                return false
+            }
+
+            if (Date.now() - lastReloginAttempt < RELOGIN_COOLDOWN) {
+                console.log("[自动重登录] 距离上次尝试时间过短，跳过本次重登录")
+                return false
+            }
+
+            const loginTime = Number(localStorage.getItem("DLSF_loginTime"))
+            if (loginTime) {
+                console.log(`[自动重登录] 距上次登录约 ${Math.round((Date.now() - loginTime) / 60000)} 分钟时检测到登录失效，尝试重新登录...`)
+            } else {
+                console.log("[自动重登录] 检测到登录失效，尝试重新登录...")
+            }
+
+            lastReloginAttempt = Date.now()
+            const success = await loginUser()
+            if (success) {
+                console.log("[自动重登录] 重新登录成功")
+                showMessage("登录已失效，已自动重新登录")
+            } else {
+                consecutiveReloginFailures++
+                console.log(`[自动重登录] 重新登录失败（连续 ${consecutiveReloginFailures} 次）`)
+                if (consecutiveReloginFailures >= MAX_RELOGIN_FAILURES) {
+                    showMessage("自动重新登录多次失败，请检查用户名和密码")
+                }
+            }
+            return success
+        } finally {
+            reloginPromise = null
+        }
+    })()
+
+    return reloginPromise
+}
+
+// 请求封装：返回内容疑似登录失效时先二次确认，确认失效后自动重登录并重试原请求
+async function apiWithRelogin(target, params) {
+    let result
+    try {
+        result = await api(target, params)
+    } catch (error) {
+        result = null
+    }
+
+    if (!isSessionInvalidResult(result)) {
+        return result
+    }
+
+    // 二次确认：如果只是偶发错误、cookie 其实有效，就不要白白重登录
+    if (await probeSession()) {
+        return result
+    }
+
+    if (!await autoRelogin()) {
+        return result
+    }
+
+    try {
+        return await api(target, params)
+    } catch (error) {
+        return null
     }
 }
 
@@ -153,7 +289,7 @@ async function getAccData(courseCode, requestKey = "") {
         params._ = requestKey
     }
 
-    const result = await api("/selectcourse/initACC", params)
+    const result = await apiWithRelogin("/selectcourse/initACC", params)
     if (!result || !result.aaData) {
         return null
     }
@@ -173,7 +309,7 @@ async function getAccLessonByCttId(courseCode, cttId, requestKey = cttId) {
 async function getSelectedCourseList(requestKey = "") {
     // 给并发请求加区分标识，避免不同 worker 互相取消请求
     const params = requestKey ? { _: requestKey } : undefined
-    const result = await api("/selectcourse/initSelCourses", params)
+    const result = await apiWithRelogin("/selectcourse/initSelCourses", params)
     if (!result || !result.enrollCourses) {
         return null
     }
@@ -200,7 +336,7 @@ async function cancelCourse(courseCode, classNo) {
 
 // 调用选课接口
 async function selectCourse(cttId) {
-    return await api("/selectcourse/scSubmit", { cttId: cttId })
+    return await apiWithRelogin("/selectcourse/scSubmit", { cttId: cttId })
 }
 
 // 换课失败时，尝试把原来的课抢回来
